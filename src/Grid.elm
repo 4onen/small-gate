@@ -31,19 +31,29 @@ toArray : Grid a -> Array a
 toArray { data } =
     data
 
+
 to2DArray : Grid a -> Array (Array a)
-to2DArray {width,height,data} =
-    Array.initialize height (\y -> Array.slice (y*width) ((y+1)*width) data) 
+to2DArray { width, height, data } =
+    Array.initialize height (\y -> Array.slice (y * width) ((y + 1) * width) data)
+
 
 toList : Grid a -> List a
-toList = toArray >> Array.toList
+toList =
+    toArray >> Array.toList
+
 
 to2DList : Grid a -> List (List a)
-to2DList = to2DArray >> Array.map (Array.toList) >> Array.toList
+to2DList =
+    to2DArray >> Array.map Array.toList >> Array.toList
+
 
 get : Int -> Int -> Grid a -> Maybe a
 get x y { width, data } =
-    if x >= 0 && x < width then Array.get (y * width + x) data else Nothing
+    if x >= 0 && x < width then
+        Array.get (y * width + x) data
+
+    else
+        Nothing
 
 
 set : Int -> Int -> a -> Grid a -> Grid a
