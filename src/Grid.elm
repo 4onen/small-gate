@@ -1,141 +1,112 @@
-module Grid exposing (..)
+module Grid exposing (Grid, activeArea, empty, fourNeighbours, get, indexedMap, initialize, map, set, toList)
 
-import Array exposing (Array)
-
-
-type alias Grid a =
-    { width : Int, height : Int, data : Array a }
+import Set exposing (Set)
 
 
-repeat : Int -> Int -> a -> Grid a
-repeat width height e =
-    { width = width
-    , height = height
-    , data = Array.repeat (width * height) e
-    }
+type alias Grid =
+    Set ( Int, Int )
 
 
-initialize : Int -> Int -> (Int -> Int -> a) -> Grid a
+empty : Grid
+empty =
+    Set.empty
+
+
+initialize : Int -> Int -> (( Int, Int ) -> Bool) -> Grid
 initialize width height f =
-    let
-        fn i =
-            f (modBy width i) (i // width)
-    in
-    { width = width
-    , height = height
-    , data = Array.initialize (width * height) fn
-    }
+    List.range 0 (width - 1)
+        |> List.concatMap (\x -> List.map (Tuple.pair x) (List.range 0 (height - 1)))
+        |> List.filter f
+        |> Set.fromList
 
 
-toArray : Grid a -> Array a
-toArray { data } =
-    data
-
-
-to2DArray : Grid a -> Array (Array a)
-to2DArray { width, height, data } =
-    Array.initialize height (\y -> Array.slice (y * width) ((y + 1) * width) data)
-
-
-toList : Grid a -> List a
+toList : Grid -> List ( Int, Int )
 toList =
-    toArray >> Array.toList
+    Set.toList
 
 
-to2DList : Grid a -> List (List a)
-to2DList =
-    to2DArray >> Array.map Array.toList >> Array.toList
+activeArea : Grid -> Maybe ( ( Int, Int ), ( Int, Int ) )
+activeArea =
+    let
+        f ( x, y ) mpts =
+            case mpts of
+                Nothing ->
+                    Just ( ( x, y ), ( x, y ) )
+
+                Just ( ( x1, y1 ), ( x2, y2 ) ) ->
+                    Just ( ( min x x1, min y y1 ), ( max x x2, max y y2 ) )
+    in
+    Set.foldl f Nothing
 
 
-get : Int -> Int -> Grid a -> Maybe a
-get x y { width, data } =
-    if x >= 0 && x < width then
-        Array.get (y * width + x) data
+get : Int -> Int -> Grid -> Bool
+get x y =
+    Set.member ( x, y )
+
+
+set : Int -> Int -> Bool -> Grid -> Grid
+set x y e =
+    if e then
+        Set.insert ( x, y )
 
     else
-        Nothing
+        Set.remove ( x, y )
 
 
-set : Int -> Int -> a -> Grid a -> Grid a
-set x y e grid =
-    { grid | data = Array.set (x * y) e grid.data }
+map : (Bool -> Bool) -> Grid -> Grid
+map f =
+    indexedMap (\_ -> f)
 
 
-map : (a -> b) -> Grid a -> Grid b
-map f { width, height, data } =
-    { width = width
-    , height = height
-    , data = Array.map f data
-    }
+indexedMap : (( Int, Int ) -> Bool -> Bool) -> Grid -> Grid
+indexedMap f grid =
+    case activeArea grid of
+        Nothing ->
+            grid
+
+        Just ( ( x1, y1 ), ( x2, y2 ) ) ->
+            let
+                rangey =
+                    List.range y1 y2
+
+                range =
+                    List.concatMap
+                        (\x -> List.map (Tuple.pair x) rangey)
+                        (List.range x1 x2)
+
+                step ( x, y ) out =
+                    if f ( x, y ) (Set.member ( x, y ) grid) then
+                        Set.insert ( x, y ) out
+
+                    else
+                        out
+            in
+            List.foldl step Set.empty range
 
 
-indexedMap : (Int -> Int -> a -> b) -> Grid a -> Grid b
-indexedMap f { width, height, data } =
-    let
-        fn i =
-            f (modBy width i) (i // width)
-    in
-    { width = width
-    , height = height
-    , data = Array.indexedMap fn data
-    }
+filter : (( Int, Int ) -> Bool) -> Grid -> Grid
+filter =
+    Set.filter
 
 
-foldl : (a -> b -> b) -> b -> Grid a -> b
-foldl f b { data } =
-    Array.foldl f b data
+union : Grid -> Grid -> Grid
+union =
+    Set.union
 
 
-foldr : (a -> b -> b) -> b -> Grid a -> b
-foldr f b { data } =
-    Array.foldr f b data
+intersect : Grid -> Grid -> Grid
+intersect =
+    Set.intersect
 
 
-type alias FourNeighbours a =
-    { north : Maybe a, west : Maybe a, east : Maybe a, south : Maybe a }
+type alias FourNeighbours =
+    { north : Bool, south : Bool, east : Bool, west : Bool }
 
 
-inGrid : Int -> Int -> Grid a -> Bool
-inGrid x y { width, height } =
-    x > -1 && x < width && y > -1 && y < height
-
-
-
-{-
-   fourNeighbourIndices : Int -> Int -> Grid a -> FourNeighbours ( Int, Int )
-   fourNeighbourIndices x y g =
-       { north =
-           if inGrid x (y - 1) g then
-               Just ( x, y - 1 )
-
-           else
-               Nothing
-       , west =
-           if inGrid (x - 1) y g then
-               Just ( x - 1, y )
-
-           else
-               Nothing
-       , east =
-           if inGrid (x + 1) y g then
-               Just ( x + 1, y )
-
-           else
-               Nothing
-       , south =
-           if inGrid x (y + 1) g then
-               Just ( x, y + 1 )
-
-           else
-               Nothing
-       }
--}
-
-
-fourNeighbours : Int -> Int -> Grid a -> FourNeighbours a
-fourNeighbours x y g =
-    { north = get x (y - 1) g
-    , west = get (x - 1) y g
-    , east = get (x + 1) y g
-    , south = get x (y + 1) g
-    }
+fourNeighbours : Int -> Int -> Grid -> FourNeighbours
+fourNeighbours x y grid =
+    FourNeighbours
+        (Set.member ( x, y + 1 ) grid)
+        (Set.member ( x, y - 1 ) grid)
+        (Set.member ( x + 1, y ) grid)
+        (Set.member ( x - 1, y ) grid)
