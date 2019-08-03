@@ -1,30 +1,167 @@
-module Layers exposing (layerRenderers, layers, renderContacts, renderMetal, renderPoly, renderSimple)
+module Layers exposing (Layer, LayerID(..), Layers, funcFromID, init, layerViewerFromID, renderBordered, renderContacts, renderMetal, renderMetalSquare, renderPoly, renderPolySquare, renderSimple, view, viewLayers)
 
 import Grid exposing (Grid)
+import Grid.Render
+import Html
 import Svg exposing (Svg)
 import Svg.Attributes as SA
 
 
-layers : List String
-layers =
-    [ "diffusion"
-    , "nmos"
-    , "pmos"
-    , "metal"
-    , "poly"
-    , "contacts"
-    ]
+type LayerID
+    = Diffusion
+    | NMOS
+    | PMOS
+    | Metal
+    | Polysilicon
+    | Contacts
 
 
-layerRenderers : List (Grid -> ( Int, Int ) -> List (Svg msg))
-layerRenderers =
-    [ renderSimple "lightgrey"
-    , renderSimple "lightblue"
-    , renderSimple "grey"
-    , renderMetal
-    , renderPoly
-    , renderContacts
+layerIDs : List LayerID
+layerIDs =
+    [ Diffusion, NMOS, PMOS, Metal, Polysilicon, Contacts ]
+
+
+type alias Layer =
+    Grid
+
+
+type alias Layers =
+    { diffusion : Layer
+    , nmos : Layer
+    , pmos : Layer
+    , metal : Layer
+    , poly : Layer
+    , contacts : Layer
+    }
+
+
+init : Layers
+init =
+    let
+        g1 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x+y//3+y//5+y//7+y*17) == 0)
+        g2 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x-y//3+y//5+y//7+y*17) == 0)
+        g3 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x+y//3-y//5+y//7+y*17) == 0)
+        g4 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x+y//3+y//5-y//7+y*17) == 0)
+        g5 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x+y//3+y//5+y//7-y*17) == 0)
+        g6 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x-y//3+y//5-y//7+y*17) == 0)
+    in
+    Layers g1 g2 g3 g4 g5 g6 
+
+
+view : List (Html.Attribute msg) -> Layers -> Html.Html msg
+view attrs layers =
+    let
+        ( ( vx, vy ), ( vw, vh ) ) =
+            layerIDs
+                |> List.map (funcFromID >> (\f -> f layers))
+                |> viewBoxOfList
+    in
+    layers
+        |> viewLayers
+        |> Svg.svg
+            (([ vx, vy, vw, vh ]
+                |> List.map String.fromInt
+                |> List.intersperse " "
+                |> String.concat
+                |> SA.viewBox
+             )
+                :: attrs
+            )
+
+
+viewLayers : Layers -> List (Svg msg)
+viewLayers layers =
+    [ Diffusion
+    , NMOS
+    , PMOS
+    , Metal
+    , Polysilicon
+    , Contacts
     ]
+        |> List.map
+            (\id ->
+                let
+                    layer =
+                        (funcFromID id) layers
+
+                    layerViewer =
+                        layerViewerFromID id
+                in
+                Grid.Render.render layer layerViewer
+                    |> Svg.g []
+            )
+
+
+viewBox : ( ( Int, Int ), ( Int, Int ) ) -> ( ( Int, Int ), ( Int, Int ) )
+viewBox ( ( x1, y1 ), ( x2, y2 ) ) =
+    ( ( x1 - 1, y1 - 1 ), ( x2 + 3 - x1, y2 + 3 - y1 ) )
+
+
+viewBoxOfList : List Grid -> ( ( Int, Int ), ( Int, Int ) )
+viewBoxOfList =
+    List.map Grid.activeArea
+        >> List.foldl
+            (\pta ptb ->
+                case ( pta, ptb ) of
+                    ( Nothing, Nothing ) ->
+                        Nothing
+
+                    ( Just pt, Nothing ) ->
+                        Just pt
+
+                    ( Nothing, Just pt ) ->
+                        Just pt
+
+                    ( Just ( ( x1, y1 ), ( x2, y2 ) ), Just ( ( x3, y3 ), ( x4, y4 ) ) ) ->
+                        Just ( ( min x1 x3, min y1 y3 ), ( max x2 x4, max y2 y4 ) )
+            )
+            Nothing
+        >> Maybe.map viewBox
+        >> Maybe.withDefault ( ( 0, 0 ), ( 1, 1 ) )
+
+
+funcFromID : LayerID -> (Layers -> Layer)
+funcFromID l =
+    case l of
+        Diffusion ->
+            .diffusion
+
+        NMOS ->
+            .nmos
+
+        PMOS ->
+            .pmos
+
+        Metal ->
+            .metal
+
+        Polysilicon ->
+            .poly
+
+        Contacts ->
+            .contacts
+
+
+layerViewerFromID : LayerID -> (Grid -> ( Int, Int ) -> List (Svg msg))
+layerViewerFromID l =
+    case l of
+        Diffusion ->
+            renderSimple "lightgrey"
+
+        NMOS ->
+            renderSimple "grey"
+
+        PMOS ->
+            renderSimple "lightblue"
+
+        Metal ->
+            renderMetal
+
+        Polysilicon ->
+            renderPoly
+
+        Contacts ->
+            renderContacts
 
 
 renderSimple : String -> Grid -> ( Int, Int ) -> List (Svg msg)
