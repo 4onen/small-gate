@@ -1,8 +1,11 @@
-module Layers exposing (Layer, LayerID(..), Layers, funcFromID, init, layerViewerFromID, renderBordered, renderContacts, renderMetal, renderMetalSquare, renderPoly, renderPolySquare, renderSimple, view, viewLayers)
+module Layers exposing (Layer, LayerID(..), Layers, Msg(..), funcFromID, init, layerIDs, layerViewerFromID, onSvgSpaceClick, renderBordered, renderContacts, renderMetal, renderMetalSquare, renderPoly, renderPolySquare, renderSimple, update, view, viewBox, viewBoxOfList, viewLayers)
 
 import Grid exposing (Grid)
 import Grid.Render
 import Html
+import Html.Attributes as HA
+import Html.Events as HE
+import Json.Decode as JD
 import Svg exposing (Svg)
 import Svg.Attributes as SA
 
@@ -35,21 +38,41 @@ type alias Layers =
     }
 
 
+type Msg
+    = Click ( Float, Float )
+    | Noop
+
+
 init : Layers
 init =
     let
-        g1 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x+y//3+y//5+y//7+y*17) == 0)
-        g2 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x-y//3+y//5+y//7+y*17) == 0)
-        g3 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x+y//3-y//5+y//7+y*17) == 0)
-        g4 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x+y//3+y//5-y//7+y*17) == 0)
-        g5 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x+y//3+y//5+y//7-y*17) == 0)
-        g6 = Grid.initialize 34 34 (\(x,y) -> modBy 4 (x-y//3+y//5-y//7+y*17) == 0)
+        g =
+            Grid.empty
     in
-    Layers g1 g2 g3 g4 g5 g6 
+    Layers g g g g g g
 
 
-view : List (Html.Attribute msg) -> Layers -> Html.Html msg
-view attrs layers =
+update : Msg -> Layers -> Layers
+update msg layers =
+    case msg of
+        Noop ->
+            layers
+
+        Click ( fx, fy ) ->
+            let
+                ( x, y ) =
+                    ( floor fx, floor fy )
+
+                newVal =
+                    layers.poly
+                        |> Grid.get x y
+                        |> Basics.not
+            in
+            { layers | poly = Grid.set x y newVal layers.poly }
+
+
+view : Int -> Int -> List (Html.Attribute Never) -> Layers -> Html.Html Msg
+view width height attrs layers =
     let
         ( ( vx, vy ), ( vw, vh ) ) =
             layerIDs
@@ -58,14 +81,29 @@ view attrs layers =
     in
     layers
         |> viewLayers
+        |> (::)
+            (Svg.rect
+                [ SA.x (String.fromInt <| vx + 1)
+                , SA.y (String.fromInt <| vy + 1)
+                , SA.width (String.fromInt <| max 0 <| vw - 2)
+                , SA.height (String.fromInt <| max 0 <| vh - 2)
+                , SA.stroke "grey"
+                , SA.strokeWidth "0.1"
+                , SA.fillOpacity "0"
+                ]
+                []
+            )
         |> Svg.svg
-            (([ vx, vy, vw, vh ]
+            ([ [ vx, vy, vw, vh ]
                 |> List.map String.fromInt
                 |> List.intersperse " "
                 |> String.concat
                 |> SA.viewBox
-             )
-                :: attrs
+             , HA.width width
+             , HA.height height
+             , onSvgSpaceClick ( width, height ) ( ( vx, vy ), ( vw, vh ) ) Click
+             ]
+                ++ List.map (HA.map (\_ -> Noop)) attrs
             )
 
 
@@ -82,7 +120,7 @@ viewLayers layers =
             (\id ->
                 let
                     layer =
-                        (funcFromID id) layers
+                        funcFromID id layers
 
                     layerViewer =
                         layerViewerFromID id
@@ -283,3 +321,43 @@ renderPolySquare ( x, y ) =
 
 renderContacts grid ( x, y ) =
     []
+
+
+onSvgSpaceClick : ( Int, Int ) -> ( ( Int, Int ), ( Int, Int ) ) -> (( Float, Float ) -> msg) -> Html.Attribute msg
+onSvgSpaceClick ( cw, ch ) ( ( vx, vy ), ( vw, vh ) ) tagger =
+    let
+        ( fcw, fch ) =
+            ( toFloat cw
+            , toFloat ch
+            )
+
+        ( fvw, fvh ) =
+            ( toFloat vw
+            , toFloat vh
+            )
+
+        pixelsPerSquare = Debug.log "pps" <|
+            min (fcw / fvw) (fch / fvh)
+
+        viewulx =
+            Debug.log "x" <|
+                (fcw - pixelsPerSquare * fvw)
+                    / 2.0
+
+        viewuly =
+            Debug.log "y" <|
+                (fch - pixelsPerSquare * fvh)
+                    / 2.0
+
+        fn ox oy =
+            tagger
+                ( ((ox - viewulx) / fcw) * fvw + toFloat vx
+                , ((oy - viewuly) / fch) * fvh + toFloat vy
+                )
+
+        decoder =
+            JD.map2 fn
+                (JD.field "offsetX" JD.float)
+                (JD.field "offsetY" JD.float)
+    in
+    HE.on "click" decoder

@@ -22,7 +22,8 @@ main =
 
 
 type Msg
-    = Noop
+    = LayersMsg Layers.Msg
+    | Noop
 
 
 type alias Model =
@@ -39,13 +40,17 @@ update msg model =
     ( case msg of
         Noop ->
             model
+
+        LayersMsg lmsg ->
+            Layers.update lmsg model
     , Cmd.none
     )
 
 
 view : Model -> Html Msg
 view =
-    Layers.view [HA.width 800, HA.height 800]
+    Layers.view 800 800 [ HA.style "border" "4px solid black" ]
+        >> Html.map LayersMsg
 
 
 transparent : Col.Color
