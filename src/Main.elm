@@ -1,38 +1,47 @@
 module Main exposing (main)
 
 import Browser
-import Color as Col
+import Browser.Events
+import Element exposing (Device, Element)
+import Element.Border
 import Grid exposing (Grid)
 import Grid.Render
-import Html exposing (Html)
-import Html.Attributes as HA
-import Html.Events as HE
 import Layers exposing (Layers)
 import Svg exposing (Svg)
 import Svg.Attributes as SA
 
 
 main =
-    Browser.element
+    Browser.document
         { init = init
         , view = view
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }
 
 
 type Msg
     = LayersMsg Layers.Msg
+    | DeviceClassified Device
     | Noop
 
 
 type alias Model =
-    Layers
+    { layers : Layers
+    , device : Device
+    }
 
 
-init : () -> ( Model, Cmd Msg )
-init () =
-    ( Layers.init, Cmd.none )
+init : { innerWidth : Int, innerHeight : Int } -> ( Model, Cmd Msg )
+init { innerWidth, innerHeight } =
+    let
+        layers =
+            Layers.init
+
+        device =
+            Element.classifyDevice { width = innerWidth, height = innerHeight }
+    in
+    ( { layers = layers, device = device }, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -41,18 +50,28 @@ update msg model =
         Noop ->
             model
 
+        DeviceClassified device ->
+            model
+
         LayersMsg lmsg ->
-            Layers.update lmsg model
+            { model | layers = Layers.update lmsg model.layers }
     , Cmd.none
     )
 
 
-view : Model -> Html Msg
-view =
-    Layers.view 800 800 [ HA.style "border" "4px solid black" ]
-        >> Html.map LayersMsg
+view : Model -> Browser.Document Msg
+view model =
+    { title = "VLISI"
+    , body =
+        Layers.view model.layers
+            |> Element.map LayersMsg
+            |> Element.layout []
+            |> List.singleton
+    }
 
 
-transparent : Col.Color
-transparent =
-    Col.rgba 0.0 0.0 0.0 0.0
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Browser.Events.onResize <|
+        \width height ->
+            DeviceClassified (Element.classifyDevice { width = width, height = height })

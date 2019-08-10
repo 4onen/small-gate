@@ -1,5 +1,6 @@
 module Layers exposing (Layer, LayerID(..), Layers, Msg(..), funcFromID, init, layerIDs, layerViewerFromID, onSvgSpaceClick, renderBordered, renderContacts, renderMetal, renderMetalSquare, renderPoly, renderPolySquare, renderSimple, update, view, viewBox, viewBoxOfList, viewLayers)
 
+import Element exposing (Element)
 import Grid exposing (Grid)
 import Grid.Render
 import Html
@@ -39,7 +40,7 @@ type alias Layers =
 
 
 type Msg
-    = Click ( Float, Float )
+    = Click Float Float
     | Noop
 
 
@@ -58,7 +59,7 @@ update msg layers =
         Noop ->
             layers
 
-        Click ( fx, fy ) ->
+        Click fx fy ->
             let
                 ( x, y ) =
                     ( floor fx, floor fy )
@@ -71,8 +72,18 @@ update msg layers =
             { layers | poly = Grid.set x y newVal layers.poly }
 
 
-view : Int -> Int -> List (Html.Attribute Never) -> Layers -> Html.Html Msg
-view width height attrs layers =
+view : Layers -> Element Msg
+view layers =
+    Element.column
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        ]
+        [ viewLayers layers
+        ]
+
+
+viewLayers : Layers -> Element Msg
+viewLayers layers =
     let
         ( ( vx, vy ), ( vw, vh ) ) =
             layerIDs
@@ -80,7 +91,7 @@ view width height attrs layers =
                 |> viewBoxOfList
     in
     layers
-        |> viewLayers
+        |> viewLayersSVG
         |> (::)
             (Svg.rect
                 [ SA.x (String.fromInt <| vx + 1)
@@ -94,21 +105,21 @@ view width height attrs layers =
                 []
             )
         |> Svg.svg
-            ([ [ vx, vy, vw, vh ]
+            [ [ vx, vy, vw, vh ]
                 |> List.map String.fromInt
                 |> List.intersperse " "
                 |> String.concat
                 |> SA.viewBox
-             , HA.width width
-             , HA.height height
-             , onSvgSpaceClick ( width, height ) ( ( vx, vy ), ( vw, vh ) ) Click
-             ]
-                ++ List.map (HA.map (\_ -> Noop)) attrs
-            )
+            , onSvgSpaceClick Click
+            , HA.style "width" "auto"
+            , HA.style "height" "auto"
+            , HA.style "border" "1px solid black"
+            ]
+        |> Element.html
 
 
-viewLayers : Layers -> List (Svg msg)
-viewLayers layers =
+viewLayersSVG : Layers -> List (Svg msg)
+viewLayersSVG layers =
     [ Diffusion
     , NMOS
     , PMOS
@@ -323,41 +334,12 @@ renderContacts grid ( x, y ) =
     []
 
 
-onSvgSpaceClick : ( Int, Int ) -> ( ( Int, Int ), ( Int, Int ) ) -> (( Float, Float ) -> msg) -> Html.Attribute msg
-onSvgSpaceClick ( cw, ch ) ( ( vx, vy ), ( vw, vh ) ) tagger =
+onSvgSpaceClick : (Float -> Float -> msg) -> Html.Attribute msg
+onSvgSpaceClick tagger =
     let
-        ( fcw, fch ) =
-            ( toFloat cw
-            , toFloat ch
-            )
-
-        ( fvw, fvh ) =
-            ( toFloat vw
-            , toFloat vh
-            )
-
-        pixelsPerSquare = Debug.log "pps" <|
-            min (fcw / fvw) (fch / fvh)
-
-        viewulx =
-            Debug.log "x" <|
-                (fcw - pixelsPerSquare * fvw)
-                    / 2.0
-
-        viewuly =
-            Debug.log "y" <|
-                (fch - pixelsPerSquare * fvh)
-                    / 2.0
-
-        fn ox oy =
-            tagger
-                ( ((ox - viewulx) / fcw) * fvw + toFloat vx
-                , ((oy - viewuly) / fch) * fvh + toFloat vy
-                )
-
         decoder =
-            JD.map2 fn
-                (JD.field "offsetX" JD.float)
-                (JD.field "offsetY" JD.float)
+            JD.map2 tagger
+                (JD.at [ "detail", "x" ] JD.float)
+                (JD.at [ "detail", "y" ] JD.float)
     in
-    HE.on "click" decoder
+    HE.on "svgclick" decoder
