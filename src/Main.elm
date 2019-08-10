@@ -51,7 +51,7 @@ update msg model =
             model
 
         DeviceClassified device ->
-            model
+            { model | device = device }
 
         LayersMsg lmsg ->
             { model | layers = Layers.update lmsg model.layers }
@@ -72,6 +72,11 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Browser.Events.onResize <|
-        \width height ->
-            DeviceClassified (Element.classifyDevice { width = width, height = height })
+    Sub.none
+
+
+
+{- Browser.Events.onResize <|
+   \width height ->
+       DeviceClassified (Element.classifyDevice { width = width, height = height })
+-}
