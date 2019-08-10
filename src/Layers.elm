@@ -78,7 +78,9 @@ view layers =
         [ Element.width Element.fill
         , Element.height Element.fill
         ]
-        [ viewLayers layers
+        [ Element.row [ Element.height <| Element.px 50 ]
+            [ Element.text "Test text" ]
+        , Element.el [ Element.centerX, Element.centerY ] <| viewLayers layers
         ]
 
 
@@ -111,8 +113,9 @@ viewLayers layers =
                 |> String.concat
                 |> SA.viewBox
             , onSvgSpaceClick Click
-            , HA.style "width" "auto"
-            , HA.style "height" "auto"
+            , SA.preserveAspectRatio "xMidYMid meet"
+            , HA.style "width" "99vw"
+            , HA.style "height" "calc(99vh - 50px)"
             , HA.style "border" "1px solid black"
             ]
         |> Element.html
