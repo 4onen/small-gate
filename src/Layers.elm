@@ -1,8 +1,9 @@
-module Layers exposing (Layer, LayerID(..), Layers, Msg(..), funcFromID, init, layerIDs, layerViewerFromID, onSvgSpaceClick, renderBordered, renderContacts, renderMetal, renderMetalSquare, renderPoly, renderPolySquare, renderSimple, update, view, viewBox, viewBoxOfList, viewLayers)
+module Layers exposing (Layer, LayerID(..), Layers, Model, Msg, funcFromID, init, layerIDs, update, view)
 
 import Element exposing (Element)
+import Element.Background
+import Element.Input
 import Grid exposing (Grid)
-import Grid.Render
 import Html
 import Html.Attributes as HA
 import Html.Events as HE
@@ -39,49 +40,111 @@ type alias Layers =
     }
 
 
+type alias Model =
+    { layers : Layers
+    , selectedLayer : Int
+    }
+
+
 type Msg
-    = Click Float Float
+    = DrawspaceClick Float Float
+    | Inc
+    | Dec
     | Noop
 
 
-init : Layers
+init : Model
 init =
     let
         g =
             Grid.empty
     in
-    Layers g g g g g g
+    Model (Layers g g g g g g) 0
 
 
-update : Msg -> Layers -> Layers
-update msg layers =
+update : Msg -> Model -> Model
+update msg model =
     case msg of
         Noop ->
-            layers
+            model
 
-        Click fx fy ->
-            let
-                ( x, y ) =
-                    ( floor fx, floor fy )
+        Inc ->
+            { model | selectedLayer = model.selectedLayer + 1 }
 
-                newVal =
-                    layers.poly
-                        |> Grid.get x y
-                        |> Basics.not
-            in
-            { layers | poly = Grid.set x y newVal layers.poly }
+        Dec ->
+            { model | selectedLayer = model.selectedLayer - 1 }
+
+        DrawspaceClick fx fy ->
+            case List.drop model.selectedLayer layerIDs |> List.head of
+                Nothing ->
+                    model
+
+                Just layerID ->
+                    let
+                        ( x, y ) =
+                            ( floor fx, floor fy )
+
+                        layers =
+                            model.layers
+
+                        layer =
+                            funcFromID layerID layers
+
+                        newVal =
+                            layer
+                                |> Grid.get x y
+                                |> Basics.not
+
+                        updatedLayer =
+                            Grid.set x y newVal layer
+                    in
+                    { model
+                        | layers =
+                            case layerID of
+                                Diffusion ->
+                                    { layers | diffusion = updatedLayer }
+
+                                NMOS ->
+                                    { layers | nmos = updatedLayer }
+
+                                PMOS ->
+                                    { layers | pmos = updatedLayer }
+
+                                Metal ->
+                                    { layers | metal = updatedLayer }
+
+                                Polysilicon ->
+                                    { layers | poly = updatedLayer }
+
+                                Contacts ->
+                                    { layers | contacts = updatedLayer }
+                    }
 
 
-view : Layers -> Element Msg
-view layers =
+view : Model -> Element Msg
+view model =
     Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
         ]
-        [ Element.row [ Element.height <| Element.px 50 ]
-            [ Element.text "Test text" ]
-        , Element.el [ Element.centerX, Element.centerY ] <| viewLayers layers
+        [ Element.row [ Element.height <| Element.px 50 ] <| viewToolbar model
+        , Element.el [ Element.centerX, Element.centerY ] <| viewLayers model.layers
         ]
+
+
+viewToolbar : Model -> List (Element Msg)
+viewToolbar model =
+    [ Element.Input.button
+        [ Element.height Element.fill
+        , Element.Background.color (Element.rgb 0.5 0.0 0.5)
+        ]
+        { onPress = Just Inc, label = Element.text "Inc" }
+    , Element.Input.button
+        [ Element.height Element.fill
+        , Element.Background.color (Element.rgb 0.5 0.0 0.5)
+        ]
+        { onPress = Just Dec, label = Element.text "Dec" }
+    ]
 
 
 viewLayers : Layers -> Element Msg
@@ -112,7 +175,7 @@ viewLayers layers =
                 |> List.intersperse " "
                 |> String.concat
                 |> SA.viewBox
-            , onSvgSpaceClick Click
+            , onSvgSpaceClick DrawspaceClick
             , SA.preserveAspectRatio "xMidYMid meet"
             , HA.style "width" "99vw"
             , HA.style "height" "calc(99vh - 50px)"
@@ -139,7 +202,7 @@ viewLayersSVG layers =
                     layerViewer =
                         layerViewerFromID id
                 in
-                Grid.Render.render layer layerViewer
+                Grid.render layer layerViewer
                     |> Svg.g []
             )
 
@@ -334,7 +397,15 @@ renderPolySquare ( x, y ) =
 
 
 renderContacts grid ( x, y ) =
-    []
+    List.singleton <|
+        Svg.rect
+            [ SA.width "0.6"
+            , SA.height "0.6"
+            , SA.x (String.fromFloat (0.2 + toFloat x))
+            , SA.y (String.fromFloat (0.2 + toFloat y))
+            , SA.fill "black"
+            ]
+            []
 
 
 onSvgSpaceClick : (Float -> Float -> msg) -> Html.Attribute msg

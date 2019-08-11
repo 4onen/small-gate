@@ -3,12 +3,7 @@ module Main exposing (main)
 import Browser
 import Browser.Events
 import Element exposing (Device, Element)
-import Element.Border
-import Grid exposing (Grid)
-import Grid.Render
-import Layers exposing (Layers)
-import Svg exposing (Svg)
-import Svg.Attributes as SA
+import Layers
 
 
 main =
@@ -27,7 +22,7 @@ type Msg
 
 
 type alias Model =
-    { layers : Layers
+    { layers : Layers.Model
     , device : Device
     }
 
