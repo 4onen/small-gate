@@ -1,6 +1,7 @@
-module Grid exposing (Grid, activeArea, empty, fourNeighbours, get, indexedMap, initialize, map, set, toList)
+module Grid exposing (Grid, Renderer, activeArea, empty, fourNeighbours, get, indexedMap, initialize, map, render, set, toList)
 
 import Set exposing (Set)
+import Svg exposing (Svg)
 
 
 type alias Grid =
@@ -110,3 +111,14 @@ fourNeighbours x y grid =
         (Set.member ( x, y - 1 ) grid)
         (Set.member ( x + 1, y ) grid)
         (Set.member ( x - 1, y ) grid)
+
+
+type alias Renderer msg =
+    Grid -> ( Int, Int ) -> List (Svg msg)
+
+
+render : Grid -> Renderer msg -> List (Svg msg)
+render grid fn =
+    grid
+        |> toList
+        |> List.concatMap (fn grid)
