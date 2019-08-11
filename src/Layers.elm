@@ -147,6 +147,21 @@ viewToolbar model =
     ]
 
 
+viewToolbar : Model -> List (Element Msg)
+viewToolbar model =
+    [ Element.Input.button
+        [ Element.width Element.fill
+        , Element.Background.color (Element.rgb 0.5 0.0 0.5)
+        ]
+        { onPress = Just Inc, label = Element.text "Inc" }
+    , Element.Input.button
+        [ Element.width Element.fill
+        , Element.Background.color (Element.rgb 0.5 0.0 0.5)
+        ]
+        { onPress = Just Dec, label = Element.text "Dec" }
+    ]
+
+
 viewLayers : Layers -> Element Msg
 viewLayers layers =
     let
