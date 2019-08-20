@@ -42,14 +42,23 @@ type alias Layers =
     }
 
 
+type alias Drag =
+    { start : ( Int, Int )
+    , curr : ( Int, Int )
+    }
+
+
 type alias Model =
     { layers : Layers
     , selectedLayer : LayerID
+    , mdrag : Maybe Drag
     }
 
 
 type Msg
-    = DrawspaceClick Float Float
+    = DragDown Int Int
+    | DragMove Int Int
+    | DragUp Int Int
     | PickLayer LayerID
     | Noop
 
@@ -60,7 +69,7 @@ init =
         g =
             Grid.empty
     in
-    Model (Layers g g g g g g) Diffusion
+    Model (Layers g g g g g g) Diffusion Nothing
 
 
 update : Msg -> Model -> Model
@@ -72,46 +81,69 @@ update msg model =
         PickLayer layer ->
             { model | selectedLayer = layer }
 
-        DrawspaceClick fx fy ->
-            let
-                ( x, y ) =
-                    ( floor fx, floor fy )
+        DragDown x y ->
+            { model | mdrag = Just (Drag ( x, y ) ( x, y )) }
 
-                layers =
-                    model.layers
+        DragMove x y ->
+            case Debug.log "Move-mdrag" model.mdrag of
+                Nothing ->
+                    model
 
-                layer =
-                    funcFromID model.selectedLayer layers
+                Just { start, curr } ->
+                    { model | mdrag = Just (Drag start ( x, y )) }
 
-                newVal =
-                    layer
-                        |> Grid.get x y
-                        |> Basics.not
+        DragUp x y ->
+            case Debug.log "Up-mdrag" model.mdrag of
+                Nothing ->
+                    model
 
-                updatedLayer =
-                    Grid.set x y newVal layer
-            in
-            { model
-                | layers =
-                    case model.selectedLayer of
-                        Diffusion ->
-                            { layers | diffusion = updatedLayer }
+                Just { start } ->
+                    { model | mdrag = Nothing, layers = flipRect start ( x, y ) model.selectedLayer model.layers }
 
-                        NMOS ->
-                            { layers | nmos = updatedLayer }
 
-                        PMOS ->
-                            { layers | pmos = updatedLayer }
+flipRect : ( Int, Int ) -> ( Int, Int ) -> LayerID -> Layers -> Layers
+flipRect ( startX, startY ) ( x, y ) selectedLayer layers =
+    let
+        layer =
+            funcFromID selectedLayer layers
 
-                        Metal ->
-                            { layers | metal = updatedLayer }
+        newVal =
+            layer
+                |> Grid.get startX startY
+                |> Basics.not
 
-                        Polysilicon ->
-                            { layers | poly = updatedLayer }
+        newLayer =
+            List.range (min startX x) (max startX x)
+                |> List.concatMap
+                    (\thisX ->
+                        List.range (min startY y) (max startY y)
+                            |> List.map (Tuple.pair thisX)
+                    )
+                |> List.foldl (\( thisX, thisY ) -> Grid.set thisX thisY newVal) layer
+    in
+    updateLayer selectedLayer newLayer layers
 
-                        Contacts ->
-                            { layers | contacts = updatedLayer }
-            }
+
+updateLayer : LayerID -> Layer -> Layers -> Layers
+updateLayer id updatedLayer layers =
+    case id of
+        Diffusion ->
+            { layers | diffusion = updatedLayer }
+
+        NMOS ->
+            { layers | nmos = updatedLayer }
+
+        PMOS ->
+            { layers | pmos = updatedLayer }
+
+        Metal ->
+            { layers | metal = updatedLayer }
+
+        Polysilicon ->
+            { layers | poly = updatedLayer }
+
+        Contacts ->
+            { layers | contacts = updatedLayer }
 
 
 view : Model -> Element Msg
@@ -121,7 +153,7 @@ view model =
         , Element.height Element.fill
         ]
         [ Element.row [ Element.height <| Element.px 50 ] <| viewToolbar model
-        , Element.el [ Element.centerX, Element.centerY ] <| viewLayers model.layers
+        , Element.el [ Element.centerX, Element.centerY ] <| viewLayers model.layers model.mdrag
         ]
 
 
@@ -199,8 +231,8 @@ viewToolbar model =
         |> List.map (Element.map PickLayer)
 
 
-viewLayers : Layers -> Element Msg
-viewLayers layers =
+viewLayers : Layers -> Maybe Drag -> Element Msg
+viewLayers layers mdrag =
     let
         ( ( vx, vy ), ( vw, vh ) ) =
             layerIDs
@@ -227,7 +259,12 @@ viewLayers layers =
                 |> List.intersperse " "
                 |> String.concat
                 |> SA.viewBox
-            , onSvgSpaceClick DrawspaceClick
+            , if mdrag == Nothing then
+                onSvgDown DragDown
+
+              else
+                onSvgMove DragMove
+            , onSvgUp DragUp
             , SA.preserveAspectRatio "xMidYMid meet"
             , HA.style "width" "99vw"
             , HA.style "height" "calc(99vh - 50px)"
@@ -460,12 +497,34 @@ renderContacts grid ( x, y ) =
             []
 
 
-onSvgSpaceClick : (Float -> Float -> msg) -> Html.Attribute msg
-onSvgSpaceClick tagger =
+onSvgDown : (Int -> Int -> msg) -> Html.Attribute msg
+onSvgDown tagger =
     let
         decoder =
             JD.map2 tagger
-                (JD.at [ "detail", "x" ] JD.float)
-                (JD.at [ "detail", "y" ] JD.float)
+                (JD.at [ "detail", "x" ] JD.float |> JD.map floor)
+                (JD.at [ "detail", "y" ] JD.float |> JD.map floor)
     in
-    HE.on "svgclick" decoder
+    HE.on "svgdown" decoder
+
+
+onSvgUp : (Int -> Int -> msg) -> Html.Attribute msg
+onSvgUp tagger =
+    let
+        decoder =
+            JD.map2 tagger
+                (JD.at [ "detail", "x" ] JD.float |> JD.map floor)
+                (JD.at [ "detail", "y" ] JD.float |> JD.map floor)
+    in
+    HE.on "svgup" decoder
+
+
+onSvgMove : (Int -> Int -> msg) -> Html.Attribute msg
+onSvgMove tagger =
+    let
+        decoder =
+            JD.map2 tagger
+                (JD.at [ "detail", "x" ] JD.float |> JD.map floor)
+                (JD.at [ "detail", "y" ] JD.float |> JD.map floor)
+    in
+    HE.on "svgmove" decoder
