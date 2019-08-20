@@ -2,6 +2,8 @@ module Layers exposing (Layer, LayerID(..), Layers, Model, Msg, funcFromID, init
 
 import Element exposing (Element)
 import Element.Background
+import Element.Border
+import Element.Font
 import Element.Input
 import Grid exposing (Grid)
 import Html
@@ -42,14 +44,13 @@ type alias Layers =
 
 type alias Model =
     { layers : Layers
-    , selectedLayer : Int
+    , selectedLayer : LayerID
     }
 
 
 type Msg
     = DrawspaceClick Float Float
-    | Inc
-    | Dec
+    | PickLayer LayerID
     | Noop
 
 
@@ -59,7 +60,7 @@ init =
         g =
             Grid.empty
     in
-    Model (Layers g g g g g g) 0
+    Model (Layers g g g g g g) Diffusion
 
 
 update : Msg -> Model -> Model
@@ -68,57 +69,49 @@ update msg model =
         Noop ->
             model
 
-        Inc ->
-            { model | selectedLayer = model.selectedLayer + 1 }
-
-        Dec ->
-            { model | selectedLayer = model.selectedLayer - 1 }
+        PickLayer layer ->
+            { model | selectedLayer = layer }
 
         DrawspaceClick fx fy ->
-            case List.drop model.selectedLayer layerIDs |> List.head of
-                Nothing ->
-                    model
+            let
+                ( x, y ) =
+                    ( floor fx, floor fy )
 
-                Just layerID ->
-                    let
-                        ( x, y ) =
-                            ( floor fx, floor fy )
+                layers =
+                    model.layers
 
-                        layers =
-                            model.layers
+                layer =
+                    funcFromID model.selectedLayer layers
 
-                        layer =
-                            funcFromID layerID layers
+                newVal =
+                    layer
+                        |> Grid.get x y
+                        |> Basics.not
 
-                        newVal =
-                            layer
-                                |> Grid.get x y
-                                |> Basics.not
+                updatedLayer =
+                    Grid.set x y newVal layer
+            in
+            { model
+                | layers =
+                    case model.selectedLayer of
+                        Diffusion ->
+                            { layers | diffusion = updatedLayer }
 
-                        updatedLayer =
-                            Grid.set x y newVal layer
-                    in
-                    { model
-                        | layers =
-                            case layerID of
-                                Diffusion ->
-                                    { layers | diffusion = updatedLayer }
+                        NMOS ->
+                            { layers | nmos = updatedLayer }
 
-                                NMOS ->
-                                    { layers | nmos = updatedLayer }
+                        PMOS ->
+                            { layers | pmos = updatedLayer }
 
-                                PMOS ->
-                                    { layers | pmos = updatedLayer }
+                        Metal ->
+                            { layers | metal = updatedLayer }
 
-                                Metal ->
-                                    { layers | metal = updatedLayer }
+                        Polysilicon ->
+                            { layers | poly = updatedLayer }
 
-                                Polysilicon ->
-                                    { layers | poly = updatedLayer }
-
-                                Contacts ->
-                                    { layers | contacts = updatedLayer }
-                    }
+                        Contacts ->
+                            { layers | contacts = updatedLayer }
+            }
 
 
 view : Model -> Element Msg
@@ -134,17 +127,76 @@ view model =
 
 viewToolbar : Model -> List (Element Msg)
 viewToolbar model =
-    [ Element.Input.button
-        [ Element.height Element.fill
-        , Element.Background.color (Element.rgb 0.5 0.0 0.5)
-        ]
-        { onPress = Just Inc, label = Element.text "Inc" }
+    let
+        selectedColor =
+            Element.rgb 1.0 1.0 0.0
+
+        borderColor =
+            Element.rgb 0.0 0.0 1.0
+
+        toolbarButton { color, selected, onPress, label } =
+            Element.Input.button
+                [ Element.height Element.fill
+                , Element.Background.color color
+                , Element.Border.solid
+                , Element.Border.width 5
+                , Element.Border.color
+                    (if selected then
+                        selectedColor
+
+                     else
+                        borderColor
+                    )
+                ]
+                { onPress = onPress, label = label }
+    in
+    [ toolbarButton
+        { color = Element.rgb 0.82421875 0.82421875 0.82421875
+        , selected = model.selectedLayer == Diffusion
+        , onPress = Just Diffusion
+        , label = Element.text "Diffusion"
+        }
+    , toolbarButton
+        { color = Element.rgb 0.5 0.5 0.5
+        , selected = model.selectedLayer == NMOS
+        , onPress = Just NMOS
+        , label = Element.text "NMOS"
+        }
+    , toolbarButton
+        { color = Element.rgb 0.67578125 0.84375 0.8984375
+        , selected = model.selectedLayer == PMOS
+        , onPress = Just PMOS
+        , label = Element.text "PMOS"
+        }
+    , toolbarButton
+        { color = Element.rgb 0.390625 0.58203125 0.92578125
+        , selected = model.selectedLayer == Metal
+        , onPress = Just Metal
+        , label = Element.text "Metal"
+        }
     , Element.Input.button
         [ Element.height Element.fill
-        , Element.Background.color (Element.rgb 0.5 0.0 0.5)
+        , Element.Background.color (Element.rgb 0.0 0.0 0.0)
+        , Element.Font.color (Element.rgb 1.0 1.0 1.0)
+        , Element.Border.solid
+        , Element.Border.width 5
+        , Element.Border.color
+            (if model.selectedLayer == Polysilicon then
+                selectedColor
+
+             else
+                borderColor
+            )
         ]
-        { onPress = Just Dec, label = Element.text "Dec" }
+        { onPress = Just Polysilicon, label = Element.text "Poly" }
+    , toolbarButton
+        { color = Element.rgb 1.0 1.0 1.0
+        , selected = model.selectedLayer == Contacts
+        , onPress = Just Contacts
+        , label = Element.text "Contacts"
+        }
     ]
+        |> List.map (Element.map PickLayer)
 
 
 viewLayers : Layers -> Element Msg
