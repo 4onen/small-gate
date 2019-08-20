@@ -1,5 +1,6 @@
-module Layers exposing (Layer, LayerID(..), Layers, Model, Msg, funcFromID, init, layerIDs, update, view)
+module Render exposing (view)
 
+import Decode exposing (..)
 import Element exposing (Element)
 import Element.Background
 import Element.Border
@@ -8,142 +9,9 @@ import Element.Input
 import Grid exposing (Grid)
 import Html
 import Html.Attributes as HA
-import Html.Events as HE
-import Json.Decode as JD
 import Svg exposing (Svg)
 import Svg.Attributes as SA
-
-
-type LayerID
-    = Diffusion
-    | NMOS
-    | PMOS
-    | Metal
-    | Polysilicon
-    | Contacts
-
-
-layerIDs : List LayerID
-layerIDs =
-    [ Diffusion, NMOS, PMOS, Metal, Polysilicon, Contacts ]
-
-
-type alias Layer =
-    Grid
-
-
-type alias Layers =
-    { diffusion : Layer
-    , nmos : Layer
-    , pmos : Layer
-    , metal : Layer
-    , poly : Layer
-    , contacts : Layer
-    }
-
-
-type alias Drag =
-    { start : ( Int, Int )
-    , curr : ( Int, Int )
-    }
-
-
-type alias Model =
-    { layers : Layers
-    , selectedLayer : LayerID
-    , mdrag : Maybe Drag
-    }
-
-
-type Msg
-    = DragDown Int Int
-    | DragMove Int Int
-    | DragUp Int Int
-    | PickLayer LayerID
-    | Noop
-
-
-init : Model
-init =
-    let
-        g =
-            Grid.empty
-    in
-    Model (Layers g g g g g g) Diffusion Nothing
-
-
-update : Msg -> Model -> Model
-update msg model =
-    case msg of
-        Noop ->
-            model
-
-        PickLayer layer ->
-            { model | selectedLayer = layer }
-
-        DragDown x y ->
-            { model | mdrag = Just (Drag ( x, y ) ( x, y )) }
-
-        DragMove x y ->
-            case Debug.log "Move-mdrag" model.mdrag of
-                Nothing ->
-                    model
-
-                Just { start, curr } ->
-                    { model | mdrag = Just (Drag start ( x, y )) }
-
-        DragUp x y ->
-            case Debug.log "Up-mdrag" model.mdrag of
-                Nothing ->
-                    model
-
-                Just { start } ->
-                    { model | mdrag = Nothing, layers = flipRect start ( x, y ) model.selectedLayer model.layers }
-
-
-flipRect : ( Int, Int ) -> ( Int, Int ) -> LayerID -> Layers -> Layers
-flipRect ( startX, startY ) ( x, y ) selectedLayer layers =
-    let
-        layer =
-            funcFromID selectedLayer layers
-
-        newVal =
-            layer
-                |> Grid.get startX startY
-                |> Basics.not
-
-        newLayer =
-            List.range (min startX x) (max startX x)
-                |> List.concatMap
-                    (\thisX ->
-                        List.range (min startY y) (max startY y)
-                            |> List.map (Tuple.pair thisX)
-                    )
-                |> List.foldl (\( thisX, thisY ) -> Grid.set thisX thisY newVal) layer
-    in
-    updateLayer selectedLayer newLayer layers
-
-
-updateLayer : LayerID -> Layer -> Layers -> Layers
-updateLayer id updatedLayer layers =
-    case id of
-        Diffusion ->
-            { layers | diffusion = updatedLayer }
-
-        NMOS ->
-            { layers | nmos = updatedLayer }
-
-        PMOS ->
-            { layers | pmos = updatedLayer }
-
-        Metal ->
-            { layers | metal = updatedLayer }
-
-        Polysilicon ->
-            { layers | poly = updatedLayer }
-
-        Contacts ->
-            { layers | contacts = updatedLayer }
+import Types exposing (..)
 
 
 view : Model -> Element Msg
@@ -324,28 +192,6 @@ viewBoxOfList =
         >> Maybe.withDefault ( ( 0, 0 ), ( 1, 1 ) )
 
 
-funcFromID : LayerID -> (Layers -> Layer)
-funcFromID l =
-    case l of
-        Diffusion ->
-            .diffusion
-
-        NMOS ->
-            .nmos
-
-        PMOS ->
-            .pmos
-
-        Metal ->
-            .metal
-
-        Polysilicon ->
-            .poly
-
-        Contacts ->
-            .contacts
-
-
 layerViewerFromID : LayerID -> (Grid -> ( Int, Int ) -> List (Svg msg))
 layerViewerFromID l =
     case l of
@@ -495,36 +341,3 @@ renderContacts grid ( x, y ) =
             , SA.fill "black"
             ]
             []
-
-
-onSvgDown : (Int -> Int -> msg) -> Html.Attribute msg
-onSvgDown tagger =
-    let
-        decoder =
-            JD.map2 tagger
-                (JD.at [ "detail", "x" ] JD.float |> JD.map floor)
-                (JD.at [ "detail", "y" ] JD.float |> JD.map floor)
-    in
-    HE.on "svgdown" decoder
-
-
-onSvgUp : (Int -> Int -> msg) -> Html.Attribute msg
-onSvgUp tagger =
-    let
-        decoder =
-            JD.map2 tagger
-                (JD.at [ "detail", "x" ] JD.float |> JD.map floor)
-                (JD.at [ "detail", "y" ] JD.float |> JD.map floor)
-    in
-    HE.on "svgup" decoder
-
-
-onSvgMove : (Int -> Int -> msg) -> Html.Attribute msg
-onSvgMove tagger =
-    let
-        decoder =
-            JD.map2 tagger
-                (JD.at [ "detail", "x" ] JD.float |> JD.map floor)
-                (JD.at [ "detail", "y" ] JD.float |> JD.map floor)
-    in
-    HE.on "svgmove" decoder
