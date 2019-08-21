@@ -81,21 +81,21 @@ viewToolbar model =
     in
     [ toolbarButton
         { color = Element.rgb 0.82421875 0.82421875 0.82421875
-        , selected = drawingTool Diffusion model.tool
-        , onPress = Just <| PickTool <| DrawTool <| Diffusion
-        , label = Element.text "Diffusion"
+        , selected = drawingTool Nwell model.tool
+        , onPress = Just <| PickTool <| DrawTool <| Nwell
+        , label = Element.text "Nwell"
         }
     , toolbarButton
         { color = Element.rgb 0.5 0.5 0.5
-        , selected = drawingTool NMOS model.tool
-        , onPress = Just <| PickTool <| DrawTool <| NMOS
-        , label = Element.text "NMOS"
+        , selected = drawingTool Ndiff model.tool
+        , onPress = Just <| PickTool <| DrawTool <| Ndiff
+        , label = Element.text "Ndiff"
         }
     , toolbarButton
         { color = Element.rgb 0.67578125 0.84375 0.8984375
-        , selected = drawingTool PMOS model.tool
-        , onPress = Just <| PickTool <| DrawTool <| PMOS
-        , label = Element.text "PMOS"
+        , selected = drawingTool Pdiff model.tool
+        , onPress = Just <| PickTool <| DrawTool <| Pdiff
+        , label = Element.text "Pdiff"
         }
     , toolbarButton
         { color = Element.rgb 0.390625 0.58203125 0.92578125
@@ -196,13 +196,7 @@ viewLayers layers labels =
 
 viewLayersSVG : Layers -> List (Svg msg)
 viewLayersSVG layers =
-    [ Diffusion
-    , NMOS
-    , PMOS
-    , Metal
-    , Polysilicon
-    , Contacts
-    ]
+    layerIDs
         |> List.map
             (\id ->
                 let
@@ -248,13 +242,13 @@ viewBoxOfList =
 layerViewerFromID : LayerID -> (Grid -> ( Int, Int ) -> List (Svg msg))
 layerViewerFromID l =
     case l of
-        Diffusion ->
+        Nwell ->
             renderSimple "lightgrey"
 
-        NMOS ->
+        Ndiff ->
             renderSimple "grey"
 
-        PMOS ->
+        Pdiff ->
             renderSimple "lightblue"
 
         Metal ->

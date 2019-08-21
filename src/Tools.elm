@@ -59,14 +59,14 @@ flipRect ( startX, startY ) ( x, y ) selectedLayer layers =
 updateLayer : LayerID -> Layer -> Layers -> Layers
 updateLayer id updatedLayer layers =
     case id of
-        Diffusion ->
-            { layers | diffusion = updatedLayer }
+        Nwell ->
+            { layers | nwell = updatedLayer }
 
-        NMOS ->
-            { layers | nmos = updatedLayer }
+        Ndiff ->
+            { layers | ndiff = updatedLayer }
 
-        PMOS ->
-            { layers | pmos = updatedLayer }
+        Pdiff ->
+            { layers | pdiff = updatedLayer }
 
         Metal ->
             { layers | metal = updatedLayer }

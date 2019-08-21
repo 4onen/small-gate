@@ -1,4 +1,4 @@
-module Grid exposing (Grid, Renderer, activeArea, empty, fourNeighbours, get, indexedMap, initialize, map, render, set, toList)
+module Grid exposing (Grid, Renderer, activeArea, empty, fourNeighbours, fromList, get, indexedMap, initialize, map, render, set, toList, union)
 
 import Set exposing (Set)
 import Svg exposing (Svg)
@@ -24,6 +24,11 @@ initialize width height f =
 toList : Grid -> List ( Int, Int )
 toList =
     Set.toList
+
+
+fromList : List ( Int, Int ) -> Grid
+fromList =
+    Set.fromList
 
 
 activeArea : Grid -> Maybe ( ( Int, Int ), ( Int, Int ) )

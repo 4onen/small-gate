@@ -5,9 +5,9 @@ import Grid exposing (Grid)
 
 
 type LayerID
-    = Diffusion
-    | NMOS
-    | PMOS
+    = Nwell
+    | Ndiff
+    | Pdiff
     | Metal
     | Polysilicon
     | Contacts
@@ -15,7 +15,7 @@ type LayerID
 
 layerIDs : List LayerID
 layerIDs =
-    [ Diffusion, NMOS, PMOS, Metal, Polysilicon, Contacts ]
+    [ Nwell, Ndiff, Pdiff, Metal, Polysilicon, Contacts ]
 
 
 type alias Layer =
@@ -23,9 +23,9 @@ type alias Layer =
 
 
 type alias Layers =
-    { diffusion : Layer
-    , nmos : Layer
-    , pmos : Layer
+    { nwell : Layer
+    , ndiff : Layer
+    , pdiff : Layer
     , metal : Layer
     , poly : Layer
     , contacts : Layer
@@ -35,14 +35,14 @@ type alias Layers =
 funcFromID : LayerID -> (Layers -> Layer)
 funcFromID l =
     case l of
-        Diffusion ->
-            .diffusion
+        Nwell ->
+            .nwell
 
-        NMOS ->
-            .nmos
+        Ndiff ->
+            .ndiff
 
-        PMOS ->
-            .pmos
+        Pdiff ->
+            .pdiff
 
         Metal ->
             .metal
@@ -77,15 +77,6 @@ type alias Model =
     }
 
 
-init : Model
-init =
-    let
-        g =
-            Grid.empty
-    in
-    Model (Layers g g g g g g) Dict.empty (Drawing Diffusion Nothing)
-
-
 type Msg
     = DragDown Int Int
     | DragMove Int Int
@@ -94,3 +85,40 @@ type Msg
     | ChangeLabel String
     | RemoveLabel String
     | Noop
+
+
+init : Model
+init =
+    let
+        metal =
+            List.foldl
+                (Grid.fromList >> Grid.union)
+                (Grid.fromList [ ( 0, 0 ), ( 0, -1 ), ( 0, 4 ), ( 0, 5 ) ])
+                [ List.range 0 4
+                    |> List.concatMap (\x -> List.map (Tuple.pair x) [ -2, 6 ])
+                , List.range 0 4
+                    |> List.map (Tuple.pair 4)
+                ]
+
+        layers =
+            { nwell =
+                List.range 0 4
+                    |> List.concatMap (\x -> List.map (Tuple.pair x) (List.range -2 1))
+                    |> Grid.fromList
+            , ndiff =
+                List.range 0 4
+                    |> List.map (\x -> Tuple.pair x 4)
+                    |> Grid.fromList
+            , pdiff =
+                List.range 0 4
+                    |> List.map (\x -> Tuple.pair x 0)
+                    |> Grid.fromList
+            , metal = metal
+            , poly =
+                List.range -1 5
+                    |> List.map (Tuple.pair 2)
+                    |> Grid.fromList
+            , contacts = Grid.fromList [ ( 0, 0 ), ( 4, 0 ), ( 0, 4 ), ( 4, 4 ) ]
+            }
+    in
+    Model layers Dict.empty (Drawing Nwell Nothing)

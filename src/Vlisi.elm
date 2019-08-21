@@ -50,7 +50,7 @@ update msg model =
 
                         DragUp x y ->
                             { model
-                                | tool = Drawing Diffusion Nothing
+                                | tool = Drawing Nwell Nothing
                                 , labels = Dict.insert label ( x, y ) model.labels
                             }
 
