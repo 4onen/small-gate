@@ -1,6 +1,7 @@
 module Render exposing (view)
 
 import Decode exposing (..)
+import Dict exposing (Dict)
 import Element exposing (Element)
 import Element.Background
 import Element.Border
@@ -21,8 +22,28 @@ view model =
         , Element.height Element.fill
         ]
         [ Element.row [ Element.height <| Element.px 50 ] <| viewToolbar model
-        , Element.el [ Element.centerX, Element.centerY ] <| viewLayers model.layers model.mdrag
+        , Element.row [ Element.centerX, Element.centerY ]
+            [ viewLayers model.layers model.labels
+            , Element.column
+                [ Element.width <| Element.px 200
+                , Element.height Element.fill
+                ]
+                (Element.text "Labels: (click removes)" :: (model.labels |> Dict.keys |> viewLabels))
+            ]
         ]
+
+
+viewLabels : List String -> List (Element Msg)
+viewLabels =
+    let
+        viewLabel : String -> Element Msg
+        viewLabel label =
+            Element.Input.button []
+                { onPress = Just (RemoveLabel label)
+                , label = Element.text label
+                }
+    in
+    List.map viewLabel
 
 
 viewToolbar : Model -> List (Element Msg)
@@ -49,29 +70,37 @@ viewToolbar model =
                     )
                 ]
                 { onPress = onPress, label = label }
+
+        drawingTool layer tool =
+            case tool of
+                Drawing layerID _ ->
+                    layerID == layer
+
+                _ ->
+                    False
     in
     [ toolbarButton
         { color = Element.rgb 0.82421875 0.82421875 0.82421875
-        , selected = model.selectedLayer == Diffusion
-        , onPress = Just Diffusion
+        , selected = drawingTool Diffusion model.tool
+        , onPress = Just <| PickTool <| DrawTool <| Diffusion
         , label = Element.text "Diffusion"
         }
     , toolbarButton
         { color = Element.rgb 0.5 0.5 0.5
-        , selected = model.selectedLayer == NMOS
-        , onPress = Just NMOS
+        , selected = drawingTool NMOS model.tool
+        , onPress = Just <| PickTool <| DrawTool <| NMOS
         , label = Element.text "NMOS"
         }
     , toolbarButton
         { color = Element.rgb 0.67578125 0.84375 0.8984375
-        , selected = model.selectedLayer == PMOS
-        , onPress = Just PMOS
+        , selected = drawingTool PMOS model.tool
+        , onPress = Just <| PickTool <| DrawTool <| PMOS
         , label = Element.text "PMOS"
         }
     , toolbarButton
         { color = Element.rgb 0.390625 0.58203125 0.92578125
-        , selected = model.selectedLayer == Metal
-        , onPress = Just Metal
+        , selected = drawingTool Metal model.tool
+        , onPress = Just <| PickTool <| DrawTool <| Metal
         , label = Element.text "Metal"
         }
     , Element.Input.button
@@ -81,26 +110,52 @@ viewToolbar model =
         , Element.Border.solid
         , Element.Border.width 5
         , Element.Border.color
-            (if model.selectedLayer == Polysilicon then
+            (if drawingTool Polysilicon model.tool then
                 selectedColor
 
              else
                 borderColor
             )
         ]
-        { onPress = Just Polysilicon, label = Element.text "Poly" }
+        { onPress = Just <| PickTool <| DrawTool <| Polysilicon, label = Element.text "Poly" }
     , toolbarButton
         { color = Element.rgb 1.0 1.0 1.0
-        , selected = model.selectedLayer == Contacts
-        , onPress = Just Contacts
+        , selected = drawingTool Contacts model.tool
+        , onPress = Just <| PickTool <| DrawTool <| Contacts
         , label = Element.text "Contacts"
         }
+    , case model.tool of
+        TypingLabel str _ ->
+            Element.Input.text
+                [ Element.height Element.fill
+                , Element.width <| Element.px 100
+                , Element.focused []
+                , Element.Border.solid
+                , Element.Border.width 5
+                , Element.Border.color selectedColor
+                ]
+                { onChange = ChangeLabel
+                , text = str
+                , placeholder = Nothing
+                , label =
+                    Element.Input.labelHidden "Enter Label"
+                }
+
+        _ ->
+            Element.Input.button
+                [ Element.height Element.fill
+                , Element.Border.solid
+                , Element.Border.width 5
+                , Element.Border.color borderColor
+                ]
+                { onPress = Just (PickTool LabelTool)
+                , label = Element.text "Label"
+                }
     ]
-        |> List.map (Element.map PickLayer)
 
 
-viewLayers : Layers -> Maybe Drag -> Element Msg
-viewLayers layers mdrag =
+viewLayers : Layers -> Dict String ( Int, Int ) -> Element Msg
+viewLayers layers labels =
     let
         ( ( vx, vy ), ( vw, vh ) ) =
             layerIDs
@@ -121,21 +176,19 @@ viewLayers layers mdrag =
                 ]
                 []
             )
+        |> (\l -> l ++ renderLabels layers labels)
         |> Svg.svg
             [ [ vx, vy, vw, vh ]
                 |> List.map String.fromInt
                 |> List.intersperse " "
                 |> String.concat
                 |> SA.viewBox
-            , if mdrag == Nothing then
-                onSvgDown DragDown
-
-              else
-                onSvgMove DragMove
+            , onSvgDown DragDown
+            , onSvgMove DragMove
             , onSvgUp DragUp
             , SA.preserveAspectRatio "xMidYMid meet"
-            , HA.style "width" "99vw"
-            , HA.style "height" "calc(99vh - 50px)"
+            , HA.style "width" "calc(98vw - 200px)"
+            , HA.style "height" "calc(98vh - 50px)"
             , HA.style "border" "1px solid black"
             ]
         |> Element.html
@@ -341,3 +394,30 @@ renderContacts grid ( x, y ) =
             , SA.fill "black"
             ]
             []
+
+
+renderLabels : Layers -> Dict String ( Int, Int ) -> List (Svg msg)
+renderLabels layers =
+    let
+        viewLabel : ( String, ( Int, Int ) ) -> List (Svg msg)
+        viewLabel ( label, ( x, y ) ) =
+            [ Svg.rect
+                [ SA.x (String.fromInt x)
+                , SA.y (String.fromInt y)
+                , SA.width "1"
+                , SA.height "1"
+                , SA.fill "yellow"
+                , SA.fillOpacity "0.4"
+                ]
+                []
+            , Svg.text_
+                [ SA.x (String.fromInt x)
+                , SA.y (String.fromFloat (Basics.toFloat y + 0.5))
+                , SA.fontSize "0.4"
+                , SA.textLength "1"
+                ]
+                [ Svg.text label ]
+            ]
+    in
+    Dict.toList
+        >> List.concatMap viewLabel

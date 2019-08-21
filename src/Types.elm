@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import Dict exposing (Dict)
 import Grid exposing (Grid)
 
 
@@ -59,10 +60,20 @@ type alias Drag =
     }
 
 
+type Tool
+    = DrawTool LayerID
+    | LabelTool
+
+
+type ToolStatus
+    = Drawing LayerID (Maybe Drag)
+    | TypingLabel String (Maybe ( Int, Int ))
+
+
 type alias Model =
     { layers : Layers
-    , selectedLayer : LayerID
-    , mdrag : Maybe Drag
+    , labels : Dict String ( Int, Int )
+    , tool : ToolStatus
     }
 
 
@@ -72,12 +83,14 @@ init =
         g =
             Grid.empty
     in
-    Model (Layers g g g g g g) Diffusion Nothing
+    Model (Layers g g g g g g) Dict.empty (Drawing Diffusion Nothing)
 
 
 type Msg
     = DragDown Int Int
     | DragMove Int Int
     | DragUp Int Int
-    | PickLayer LayerID
+    | PickTool Tool
+    | ChangeLabel String
+    | RemoveLabel String
     | Noop

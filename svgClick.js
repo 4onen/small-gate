@@ -14,6 +14,7 @@ var observer = new MutationObserver(function (mutations) {
                             .from(notableChildren)
                             .forEach(function (svg) {
                                 svg.addEventListener('mousedown', function (event) {
+                                    event.preventDefault();
                                     let point = svg.createSVGPoint();
                                     point.x = event.clientX;
                                     point.y = event.clientY;
@@ -27,6 +28,7 @@ var observer = new MutationObserver(function (mutations) {
                                     event.currentTarget.dispatchEvent(svgClickEvent);
                                 });
                                 svg.addEventListener('mouseup', function (event) {
+                                    event.preventDefault();
                                     let point = svg.createSVGPoint();
                                     point.x = event.clientX;
                                     point.y = event.clientY;
@@ -40,6 +42,7 @@ var observer = new MutationObserver(function (mutations) {
                                     event.currentTarget.dispatchEvent(svgClickEvent);
                                 });
                                 svg.addEventListener('mousemove', function (event) {
+                                    event.preventDefault();
                                     let point = svg.createSVGPoint();
                                     point.x = event.clientX;
                                     point.y = event.clientY;
