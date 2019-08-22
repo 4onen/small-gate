@@ -68,7 +68,7 @@ viewViewStatus ( v, val ) =
     let
         button ( eye, attrs ) =
             Element.Input.button
-                (attrs ++ [ Element.Font.center, Element.Font.family [ Element.Font.monospace ] ])
+                (attrs ++ [ Element.Font.center ])
                 { onPress = Just <| ToggleView v, label = Element.text eye }
     in
     button <|
