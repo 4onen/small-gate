@@ -4,9 +4,9 @@ import Browser
 import Dict
 import Element
 import Grid
-import Render exposing (..)
 import Tools exposing (..)
 import Types exposing (..)
+import Workspace exposing (..)
 
 
 main =
@@ -28,6 +28,16 @@ update msg model =
 
                 LabelTool ->
                     { model | tool = TypingLabel "" Nothing }
+
+        ToggleView v ->
+            { model
+                | views =
+                    if List.member v model.views then
+                        List.filter (\e -> v /= e) model.views
+
+                    else
+                        v :: model.views
+            }
 
         RemoveLabel label ->
             { model | labels = Dict.remove label model.labels }

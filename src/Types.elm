@@ -70,10 +70,22 @@ type ToolStatus
     | TypingLabel String (Maybe ( Int, Int ))
 
 
+type View
+    = LabelsView
+    | LayerView LayerID
+    | LabelConnec String
+
+
+defaultViews : List View
+defaultViews =
+    LabelsView :: List.map LayerView layerIDs
+
+
 type alias Model =
     { layers : Layers
     , labels : Dict String ( Int, Int )
     , tool : ToolStatus
+    , views : List View
     }
 
 
@@ -84,6 +96,7 @@ type Msg
     | PickTool Tool
     | ChangeLabel String
     | RemoveLabel String
+    | ToggleView View
     | Noop
 
 
@@ -121,4 +134,8 @@ init =
             , contacts = Grid.fromList [ ( 0, 0 ), ( 4, 0 ), ( 0, 4 ), ( 4, 4 ) ]
             }
     in
-    Model layers Dict.empty (Drawing Nwell Nothing)
+    Model
+        layers
+        Dict.empty
+        (Drawing Nwell Nothing)
+        defaultViews
