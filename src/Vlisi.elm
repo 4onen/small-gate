@@ -50,7 +50,7 @@ update msg model =
                 TypingLabel label mdrag ->
                     case msg of
                         ChangeLabel str ->
-                            { model | tool = TypingLabel str mdrag }
+                            { model | tool = TypingLabel (String.filter Char.isAlphaNum str) mdrag }
 
                         DragDown x y ->
                             { model | tool = TypingLabel label <| Just ( x, y ) }
@@ -61,7 +61,13 @@ update msg model =
                         DragUp x y ->
                             { model
                                 | tool = Drawing Nwell Nothing
-                                , labels = Dict.insert label ( x, y ) model.labels
+                                , labels =
+                                    case String.filter Char.isAlphaNum label of
+                                        "" ->
+                                            model.labels
+
+                                        cleanLabel ->
+                                            Dict.insert cleanLabel ( x, y ) model.labels
                             }
 
                         _ ->
