@@ -25,7 +25,7 @@ view model =
         [ Element.width Element.fill
         , Element.height Element.fill
         ]
-        [ Element.row [ Element.height <| Element.px 50 ] <| viewToolbar model
+        [ toolbar [ Element.height <| Element.px 50 ] model
         , Element.row [ Element.centerX, Element.centerY ]
             [ Render.view sortedViews model
             , Element.column
@@ -33,14 +33,14 @@ view model =
                 , Element.height Element.fill
                 ]
                 [ Views.view arrangedViews
-                , viewLabels (model.labels |> Dict.keys)
+                , viewLabels [] (model.labels |> Dict.keys)
                 ]
             ]
         ]
 
 
-viewLabels : List String -> Element Msg
-viewLabels labels =
+viewLabels : List (Element.Attribute Msg) -> List String -> Element Msg
+viewLabels attrs labels =
     let
         viewLabel : String -> Element Msg
         viewLabel label =
@@ -55,11 +55,11 @@ viewLabels labels =
     labels
         |> List.map viewLabel
         |> (::) (Element.text "Labels: (click delete)")
-        |> Element.column [ Element.width Element.fill, Element.height Element.fill ]
+        |> Element.column attrs
 
 
-viewToolbar : Model -> List (Element Msg)
-viewToolbar model =
+toolbar : List (Element.Attribute Msg) -> Model -> Element Msg
+toolbar attrs model =
     let
         selectedColor =
             Element.rgb 1.0 1.0 0.0
@@ -91,76 +91,77 @@ viewToolbar model =
                 _ ->
                     False
     in
-    [ toolbarButton
-        { color = Element.rgb 0.82421875 0.82421875 0.82421875
-        , selected = drawingTool Nwell model.tool
-        , onPress = Just <| PickTool <| DrawTool <| Nwell
-        , label = Element.text "Nwell"
-        }
-    , toolbarButton
-        { color = Element.rgb 0.5 0.5 0.5
-        , selected = drawingTool Ndiff model.tool
-        , onPress = Just <| PickTool <| DrawTool <| Ndiff
-        , label = Element.text "Ndiff"
-        }
-    , toolbarButton
-        { color = Element.rgb 0.67578125 0.84375 0.8984375
-        , selected = drawingTool Pdiff model.tool
-        , onPress = Just <| PickTool <| DrawTool <| Pdiff
-        , label = Element.text "Pdiff"
-        }
-    , toolbarButton
-        { color = Element.rgb 0.390625 0.58203125 0.92578125
-        , selected = drawingTool Metal model.tool
-        , onPress = Just <| PickTool <| DrawTool <| Metal
-        , label = Element.text "Metal"
-        }
-    , Element.Input.button
-        [ Element.height Element.fill
-        , Element.Background.color (Element.rgb 0.0 0.0 0.0)
-        , Element.Font.color (Element.rgb 1.0 1.0 1.0)
-        , Element.Border.solid
-        , Element.Border.width 5
-        , Element.Border.color
-            (if drawingTool Polysilicon model.tool then
-                selectedColor
+    Element.row attrs
+        [ toolbarButton
+            { color = Element.rgb 0.82421875 0.82421875 0.82421875
+            , selected = drawingTool Nwell model.tool
+            , onPress = Just <| PickTool <| DrawTool <| Nwell
+            , label = Element.text "Nwell"
+            }
+        , toolbarButton
+            { color = Element.rgb 0.5 0.5 0.5
+            , selected = drawingTool Ndiff model.tool
+            , onPress = Just <| PickTool <| DrawTool <| Ndiff
+            , label = Element.text "Ndiff"
+            }
+        , toolbarButton
+            { color = Element.rgb 0.67578125 0.84375 0.8984375
+            , selected = drawingTool Pdiff model.tool
+            , onPress = Just <| PickTool <| DrawTool <| Pdiff
+            , label = Element.text "Pdiff"
+            }
+        , toolbarButton
+            { color = Element.rgb 0.390625 0.58203125 0.92578125
+            , selected = drawingTool Metal model.tool
+            , onPress = Just <| PickTool <| DrawTool <| Metal
+            , label = Element.text "Metal"
+            }
+        , Element.Input.button
+            [ Element.height Element.fill
+            , Element.Background.color (Element.rgb 0.0 0.0 0.0)
+            , Element.Font.color (Element.rgb 1.0 1.0 1.0)
+            , Element.Border.solid
+            , Element.Border.width 5
+            , Element.Border.color
+                (if drawingTool Polysilicon model.tool then
+                    selectedColor
 
-             else
-                borderColor
-            )
+                 else
+                    borderColor
+                )
+            ]
+            { onPress = Just <| PickTool <| DrawTool <| Polysilicon, label = Element.text "Poly" }
+        , toolbarButton
+            { color = Element.rgb 1.0 1.0 1.0
+            , selected = drawingTool Contacts model.tool
+            , onPress = Just <| PickTool <| DrawTool <| Contacts
+            , label = Element.text "Contacts"
+            }
+        , case model.tool of
+            TypingLabel str _ ->
+                Element.Input.text
+                    [ Element.height Element.fill
+                    , Element.width <| Element.px 100
+                    , Element.focused []
+                    , Element.Border.solid
+                    , Element.Border.width 5
+                    , Element.Border.color selectedColor
+                    ]
+                    { onChange = ChangeLabel
+                    , text = str
+                    , placeholder = Nothing
+                    , label =
+                        Element.Input.labelHidden "Enter Label"
+                    }
+
+            _ ->
+                Element.Input.button
+                    [ Element.height Element.fill
+                    , Element.Border.solid
+                    , Element.Border.width 5
+                    , Element.Border.color borderColor
+                    ]
+                    { onPress = Just (PickTool LabelTool)
+                    , label = Element.text "Label"
+                    }
         ]
-        { onPress = Just <| PickTool <| DrawTool <| Polysilicon, label = Element.text "Poly" }
-    , toolbarButton
-        { color = Element.rgb 1.0 1.0 1.0
-        , selected = drawingTool Contacts model.tool
-        , onPress = Just <| PickTool <| DrawTool <| Contacts
-        , label = Element.text "Contacts"
-        }
-    , case model.tool of
-        TypingLabel str _ ->
-            Element.Input.text
-                [ Element.height Element.fill
-                , Element.width <| Element.px 100
-                , Element.focused []
-                , Element.Border.solid
-                , Element.Border.width 5
-                , Element.Border.color selectedColor
-                ]
-                { onChange = ChangeLabel
-                , text = str
-                , placeholder = Nothing
-                , label =
-                    Element.Input.labelHidden "Enter Label"
-                }
-
-        _ ->
-            Element.Input.button
-                [ Element.height Element.fill
-                , Element.Border.solid
-                , Element.Border.width 5
-                , Element.Border.color borderColor
-                ]
-                { onPress = Just (PickTool LabelTool)
-                , label = Element.text "Label"
-                }
-    ]
