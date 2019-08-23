@@ -7,7 +7,7 @@ import Element.Border
 import Element.Font
 import Element.Input
 import Grid exposing (Grid)
-import Render exposing (..)
+import Render
 import Types exposing (..)
 import Views
 
@@ -20,7 +20,7 @@ view model =
         ]
         [ Element.row [ Element.height <| Element.px 50 ] <| viewToolbar model
         , Element.row [ Element.centerX, Element.centerY ]
-            [ viewLayers model.layers model.labels
+            [ Render.view model
             , Element.column
                 [ Element.width <| Element.px 200
                 , Element.height Element.fill

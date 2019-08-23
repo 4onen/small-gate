@@ -1,4 +1,4 @@
-module Render exposing (viewLayers)
+module Render exposing (view)
 
 import Dict exposing (Dict)
 import Element
@@ -12,30 +12,38 @@ import SvgClick
 import Types exposing (..)
 
 
-viewLayers : Layers -> Dict String ( Int, Int ) -> Element.Element Msg
-viewLayers layers labels =
+view : Model -> Element.Element Msg
+view model =
     let
+        activeLayers =
+            model.views
+                |> List.map
+                    (\v ->
+                        case v of
+                            LabelsView ->
+                                model.labels
+                                    |> renderLabels
+                                    |> Svg.g []
+
+                            LayerView id ->
+                                Grid.render
+                                    (funcFromID id model.layers)
+                                    (layerViewerFromID id)
+                                    |> Svg.g []
+
+                            LabelConnec label ->
+                                Dict.fromList [ ( "ConnecNotSupported", ( 0, 0 ) ) ]
+                                    |> renderLabels
+                                    |> Svg.g []
+                    )
+
         ( ( vx, vy ), ( vw, vh ) ) =
             layerIDs
-                |> List.map (funcFromID >> (\f -> f layers))
+                |> List.map (funcFromID >> (\f -> f model.layers))
                 |> viewBoxOfList
     in
-    layers
-        |> viewLayersSVG
-        |> (::)
-            (Svg.rect
-                [ SA.x (String.fromInt <| vx + 1)
-                , SA.y (String.fromInt <| vy + 1)
-                , SA.width (String.fromInt <| max 0 <| vw - 2)
-                , SA.height (String.fromInt <| max 0 <| vh - 2)
-                , SA.stroke "grey"
-                , SA.strokeWidth "0.1"
-                , SA.fillOpacity "0"
-                ]
-                []
-            )
-        |> (\l -> l ++ renderLabels layers labels)
-        |> Svg.svg
+    Element.html <|
+        Svg.svg
             [ [ vx, vy, vw, vh ]
                 |> List.map String.fromInt
                 |> List.intersperse " "
@@ -49,7 +57,7 @@ viewLayers layers labels =
             , HA.style "height" "calc(98vh - 50px)"
             , HA.style "border" "1px solid black"
             ]
-        |> Element.html
+            activeLayers
 
 
 viewLayersSVG : Layers -> List (Svg msg)

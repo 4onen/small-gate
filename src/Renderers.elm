@@ -158,8 +158,8 @@ renderContacts grid ( x, y ) =
             []
 
 
-renderLabels : Layers -> Dict String ( Int, Int ) -> List (Svg msg)
-renderLabels layers =
+renderLabels : Dict String ( Int, Int ) -> List (Svg msg)
+renderLabels =
     let
         viewLabel : ( String, ( Int, Int ) ) -> List (Svg msg)
         viewLabel ( label, ( x, y ) ) =
