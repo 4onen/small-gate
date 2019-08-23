@@ -43,24 +43,35 @@ view activeViews possibleViews =
                 possibleDict
                 activeViews
     in
-    Element.table
+    Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.spacing 5
-        , Element.scrollbars
         ]
-        { data = viewDict
-        , columns =
-            [ { header = Element.none
-              , width = Element.px 40
-              , view = viewViewStatus
-              }
-            , { header = Element.el [ Element.Font.center ] <| Element.text "View Name"
-              , width = Element.fill
-              , view = Tuple.first >> viewViewLabel
-              }
+        [ Element.el
+            [ Element.width Element.fill
+            , Element.Font.center
             ]
-        }
+          <|
+            Element.text "Views:"
+        , Element.table
+            [ Element.height Element.fill
+            , Element.spacingXY 0 5
+            , Element.scrollbars
+            ]
+            { data = viewDict
+            , columns =
+                [ { header = Element.none
+                  , width = Element.px 40
+                  , view = viewViewStatus
+                  }
+                , { header = Element.none
+                  , width = Element.fill
+                  , view = Tuple.first >> viewViewLabel
+                  }
+                ]
+            }
+        ]
 
 
 viewViewStatus : ( View, ViewStatus ) -> Element Msg
