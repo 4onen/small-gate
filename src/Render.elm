@@ -1,6 +1,5 @@
 module Render exposing (viewLayers)
 
-import Decode exposing (..)
 import Dict exposing (Dict)
 import Element
 import Grid exposing (Grid)
@@ -9,6 +8,7 @@ import Html.Attributes as HA
 import Renderers exposing (..)
 import Svg exposing (Svg)
 import Svg.Attributes as SA
+import SvgClick
 import Types exposing (..)
 
 
@@ -41,9 +41,9 @@ viewLayers layers labels =
                 |> List.intersperse " "
                 |> String.concat
                 |> SA.viewBox
-            , onSvgDown DragDown
-            , onSvgMove DragMove
-            , onSvgUp DragUp
+            , SvgClick.onDown DragDown
+            , SvgClick.onMove DragMove
+            , SvgClick.onUp DragUp
             , SA.preserveAspectRatio "xMidYMid meet"
             , HA.style "width" "calc(98vw - 200px)"
             , HA.style "height" "calc(98vh - 50px)"

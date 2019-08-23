@@ -1,4 +1,4 @@
-module Decode exposing (onSvgDown, onSvgMove, onSvgUp)
+module SvgClick exposing (onDown, onMove, onUp)
 
 import Html
 import Html.Events
@@ -16,16 +16,16 @@ onPointDecode evt tagger =
     Html.Events.on evt decoder
 
 
-onSvgDown : (Int -> Int -> msg) -> Html.Attribute msg
-onSvgDown =
+onDown : (Int -> Int -> msg) -> Html.Attribute msg
+onDown =
     onPointDecode "svgdown"
 
 
-onSvgUp : (Int -> Int -> msg) -> Html.Attribute msg
-onSvgUp =
+onUp : (Int -> Int -> msg) -> Html.Attribute msg
+onUp =
     onPointDecode "svgup"
 
 
-onSvgMove : (Int -> Int -> msg) -> Html.Attribute msg
-onSvgMove =
+onMove : (Int -> Int -> msg) -> Html.Attribute msg
+onMove =
     onPointDecode "svgmove"
