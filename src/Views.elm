@@ -1,9 +1,14 @@
-module Views exposing (view)
+module Views exposing (arrange, defaultViews, sort, view)
 
 import Element exposing (Element)
 import Element.Font
 import Element.Input
 import Types exposing (..)
+
+
+defaultViews : List View
+defaultViews =
+    List.map LayerView layerIDs ++ [ LabelsView ]
 
 
 type ViewStatus
@@ -12,8 +17,8 @@ type ViewStatus
     | ActiveImpossible
 
 
-view : List View -> List View -> Element Msg
-view activeViews possibleViews =
+arrange : List View -> List View -> List ( View, ViewStatus )
+arrange activeViews possibleViews =
     let
         possibleDict =
             List.map (\v -> Tuple.pair v InactivePossible) possibleViews
@@ -36,30 +41,41 @@ view activeViews possibleViews =
             else
                 -- Already inserted.
                 dict
-
-        viewDict =
-            List.foldl
-                viewDictStep
-                possibleDict
-                activeViews
     in
+    List.foldl
+        viewDictStep
+        possibleDict
+        activeViews
+
+
+sort : List ( View, ViewStatus ) -> List View
+sort =
+    List.filterMap
+        (\( v, val ) ->
+            case val of
+                ActivePossible ->
+                    Just v
+
+                _ ->
+                    Nothing
+        )
+
+
+view : List ( View, ViewStatus ) -> Element Msg
+view views =
     Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.spacing 5
+        , Element.Font.center
         ]
-        [ Element.el
-            [ Element.width Element.fill
-            , Element.Font.center
-            ]
-          <|
-            Element.text "Views:"
+        [ Element.text "Views:"
         , Element.table
             [ Element.height Element.fill
             , Element.spacingXY 0 5
             , Element.scrollbars
             ]
-            { data = viewDict
+            { data = List.reverse views
             , columns =
                 [ { header = Element.none
                   , width = Element.px 40

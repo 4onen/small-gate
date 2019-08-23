@@ -14,18 +14,25 @@ import Views
 
 view : Model -> Element Msg
 view model =
+    let
+        arrangedViews =
+            Views.arrange model.views Views.defaultViews
+
+        sortedViews =
+            Views.sort arrangedViews
+    in
     Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
         ]
         [ Element.row [ Element.height <| Element.px 50 ] <| viewToolbar model
         , Element.row [ Element.centerX, Element.centerY ]
-            [ Render.view model
+            [ Render.view sortedViews model
             , Element.column
                 [ Element.width <| Element.px 200
                 , Element.height Element.fill
                 ]
-                [ Views.view model.views defaultViews
+                [ Views.view arrangedViews
                 , viewLabels (model.labels |> Dict.keys)
                 ]
             ]

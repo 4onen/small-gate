@@ -12,11 +12,11 @@ import SvgClick
 import Types exposing (..)
 
 
-view : Model -> Element.Element Msg
-view model =
+view : List View -> { model | labels : Dict String ( Int, Int ), layers : Layers } -> Element.Element Msg
+view views model =
     let
         activeLayers =
-            model.views
+            views
                 |> List.map
                     (\v ->
                         case v of
