@@ -1,14 +1,22 @@
-module Tools exposing (..)
+module Tools exposing (ToolFunctions, flipRect, updateDrawing, updateLayer)
 
 import Grid
 import Types exposing (..)
 
 
-updateDrawing : Msg -> LayerID -> Maybe Drag -> Model -> Model
-updateDrawing msg layer mdrag model =
+type alias ToolFunctions =
+    { dragDown : Int -> Int -> Model -> Model
+    , dragMove : Int -> Int -> Model -> Model
+    , dragUp : Int -> Int -> Model -> Model
+    , update : Msg -> Model -> Model
+    }
+
+
+updateDrawing : Msg -> Maybe Drag -> Model -> Model
+updateDrawing msg mdrag model =
     case msg of
         DragDown x y ->
-            { model | tool = Drawing layer <| Just (Drag ( x, y ) ( x, y )) }
+            { model | tool = Drawing <| Just (Drag ( x, y ) ( x, y )) }
 
         DragMove x y ->
             case mdrag of
@@ -16,7 +24,7 @@ updateDrawing msg layer mdrag model =
                     model
 
                 Just { start, curr } ->
-                    { model | tool = Drawing layer <| Just (Drag start ( x, y )) }
+                    { model | tool = Drawing <| Just (Drag start ( x, y )) }
 
         DragUp x y ->
             case mdrag of
@@ -25,8 +33,8 @@ updateDrawing msg layer mdrag model =
 
                 Just { start } ->
                     { model
-                        | tool = Drawing layer Nothing
-                        , layers = flipRect start ( x, y ) layer model.layers
+                        | tool = Drawing Nothing
+                        , layers = flipRect start ( x, y ) model.selectedLayer model.layers
                     }
 
         _ ->

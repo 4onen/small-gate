@@ -44,17 +44,25 @@ viewLabels attrs labels =
     let
         viewLabel : String -> Element Msg
         viewLabel label =
-            Element.Input.button
+            Element.row
                 [ Element.width Element.fill
                 , Element.Background.color (Element.rgb 1.0 1.0 0.7)
                 ]
-                { onPress = Just (RemoveLabel label)
-                , label = Element.text label
-                }
+                [ Element.Input.button
+                    [ Element.width Element.fill ]
+                    { onPress = Just (PickTool <| TypingLabel label)
+                    , label = Element.text label
+                    }
+                , Element.Input.button
+                    [ Element.width Element.shrink ]
+                    { onPress = Just (RemoveLabel label)
+                    , label = Element.text "T"
+                    }
+                ]
     in
     labels
         |> List.map viewLabel
-        |> (::) (Element.text "Labels: (click delete)")
+        |> (::) (Element.text "Labels: (T trashes)")
         |> Element.column attrs
 
 
@@ -70,7 +78,6 @@ toolbar attrs model =
         toolbarButton { color, selected, onPress, label } =
             Element.Input.button
                 [ Element.height Element.fill
-                , Element.Background.color color
                 , Element.Border.solid
                 , Element.Border.width 5
                 , Element.Border.color
@@ -83,10 +90,10 @@ toolbar attrs model =
                 ]
                 { onPress = onPress, label = label }
 
-        drawingTool layer tool =
+        drawingTool tool =
             case tool of
-                Drawing layerID _ ->
-                    layerID == layer
+                Drawing _ ->
+                    True
 
                 _ ->
                     False
@@ -94,51 +101,12 @@ toolbar attrs model =
     Element.row attrs
         [ toolbarButton
             { color = Element.rgb 0.82421875 0.82421875 0.82421875
-            , selected = drawingTool Nwell model.tool
-            , onPress = Just <| PickTool <| DrawTool <| Nwell
-            , label = Element.text "Nwell"
-            }
-        , toolbarButton
-            { color = Element.rgb 0.5 0.5 0.5
-            , selected = drawingTool Ndiff model.tool
-            , onPress = Just <| PickTool <| DrawTool <| Ndiff
-            , label = Element.text "Ndiff"
-            }
-        , toolbarButton
-            { color = Element.rgb 0.67578125 0.84375 0.8984375
-            , selected = drawingTool Pdiff model.tool
-            , onPress = Just <| PickTool <| DrawTool <| Pdiff
-            , label = Element.text "Pdiff"
-            }
-        , toolbarButton
-            { color = Element.rgb 0.390625 0.58203125 0.92578125
-            , selected = drawingTool Metal model.tool
-            , onPress = Just <| PickTool <| DrawTool <| Metal
-            , label = Element.text "Metal"
-            }
-        , Element.Input.button
-            [ Element.height Element.fill
-            , Element.Background.color (Element.rgb 0.0 0.0 0.0)
-            , Element.Font.color (Element.rgb 1.0 1.0 1.0)
-            , Element.Border.solid
-            , Element.Border.width 5
-            , Element.Border.color
-                (if drawingTool Polysilicon model.tool then
-                    selectedColor
-
-                 else
-                    borderColor
-                )
-            ]
-            { onPress = Just <| PickTool <| DrawTool <| Polysilicon, label = Element.text "Poly" }
-        , toolbarButton
-            { color = Element.rgb 1.0 1.0 1.0
-            , selected = drawingTool Contacts model.tool
-            , onPress = Just <| PickTool <| DrawTool <| Contacts
-            , label = Element.text "Contacts"
+            , selected = drawingTool model.tool
+            , onPress = Just <| PickTool <| Drawing Nothing
+            , label = Element.text "Draw"
             }
         , case model.tool of
-            TypingLabel str _ ->
+            TypingLabel str ->
                 Element.Input.text
                     [ Element.height Element.fill
                     , Element.width <| Element.px 100
@@ -161,7 +129,7 @@ toolbar attrs model =
                     , Element.Border.width 5
                     , Element.Border.color borderColor
                     ]
-                    { onPress = Just (PickTool LabelTool)
+                    { onPress = Just (PickTool <| TypingLabel "")
                     , label = Element.text "Label"
                     }
         ]

@@ -56,7 +56,8 @@ init =
     Model
         layers
         Dict.empty
-        (Drawing Nwell Nothing)
+        Metal
+        (Drawing Nothing)
         defaultViews
 
 
@@ -64,12 +65,10 @@ update : Msg -> Model -> Model
 update msg model =
     case msg of
         PickTool tool ->
-            case tool of
-                DrawTool layerID ->
-                    { model | tool = Drawing layerID Nothing }
+            { model | tool = tool }
 
-                LabelTool ->
-                    { model | tool = TypingLabel "" Nothing }
+        PickLayer id ->
+            { model | selectedLayer = id, tool = Drawing Nothing }
 
         ToggleView v ->
             { model
@@ -86,23 +85,17 @@ update msg model =
 
         _ ->
             case model.tool of
-                Drawing layer mdrag ->
-                    updateDrawing msg layer mdrag model
+                Drawing mdrag ->
+                    updateDrawing msg mdrag model
 
-                TypingLabel label mdrag ->
+                TypingLabel label ->
                     case msg of
                         ChangeLabel str ->
-                            { model | tool = TypingLabel (String.filter Char.isAlphaNum str) mdrag }
-
-                        DragDown x y ->
-                            { model | tool = TypingLabel label <| Just ( x, y ) }
-
-                        DragMove x y ->
-                            { model | tool = TypingLabel label <| Just ( x, y ) }
+                            { model | tool = TypingLabel (String.filter Char.isAlphaNum str) }
 
                         DragUp x y ->
                             { model
-                                | tool = Drawing Nwell Nothing
+                                | tool = Drawing Nothing
                                 , labels =
                                     case String.filter Char.isAlphaNum label of
                                         "" ->

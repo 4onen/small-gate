@@ -63,31 +63,40 @@ sort =
 
 view : List ( View, ViewStatus ) -> Element Msg
 view views =
-    Element.column
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.spacing 5
-        , Element.Font.center
+    Element.table
+        [ Element.height Element.fill
+        , Element.spacingXY 0 5
+        , Element.scrollbars
         ]
-        [ Element.text "Views:"
-        , Element.table
-            [ Element.height Element.fill
-            , Element.spacingXY 0 5
-            , Element.scrollbars
+        { data = List.reverse views
+        , columns =
+            [ { header = Element.none
+              , width = Element.shrink
+              , view = viewViewStatus
+              }
+            , { header = Element.none
+              , width = Element.shrink
+              , view = viewSelectLayerButton
+              }
+            , { header = Element.text "Views:"
+              , width = Element.fill
+              , view = viewViewLabel
+              }
             ]
-            { data = List.reverse views
-            , columns =
-                [ { header = Element.none
-                  , width = Element.px 40
-                  , view = viewViewStatus
-                  }
-                , { header = Element.none
-                  , width = Element.fill
-                  , view = Tuple.first >> viewViewLabel
-                  }
-                ]
-            }
-        ]
+        }
+
+
+viewSelectLayerButton : ( View, ViewStatus ) -> Element Msg
+viewSelectLayerButton v =
+    case v of
+        ( LayerView id, ActivePossible ) ->
+            Element.Input.button []
+                { onPress = Just <| PickLayer id
+                , label = Element.text "✎"
+                }
+
+        _ ->
+            Element.none
 
 
 viewViewStatus : ( View, ViewStatus ) -> Element Msg
@@ -110,32 +119,36 @@ viewViewStatus ( v, val ) =
                 ( "-", [] )
 
 
-viewViewLabel : View -> Element msg
-viewViewLabel v =
-    Element.text <|
-        case v of
-            LabelsView ->
-                "Labels"
+viewViewLabel : ( View, ViewStatus ) -> Element Msg
+viewViewLabel ( v, vs ) =
+    case v of
+        LabelsView ->
+            Element.text "Labels"
 
-            LayerView id ->
-                case id of
-                    Nwell ->
-                        "N-well"
+        LayerView id ->
+            Element.Input.button []
+                { onPress = Just <| PickLayer id
+                , label =
+                    Element.text <|
+                        case id of
+                            Nwell ->
+                                "N-well"
 
-                    Ndiff ->
-                        "N-diffusion"
+                            Ndiff ->
+                                "N-diffusion"
 
-                    Pdiff ->
-                        "P-diffusion"
+                            Pdiff ->
+                                "P-diffusion"
 
-                    Metal ->
-                        "Metal"
+                            Metal ->
+                                "Metal"
 
-                    Polysilicon ->
-                        "Polysilicon"
+                            Polysilicon ->
+                                "Polysilicon"
 
-                    Contacts ->
-                        "Contacts"
+                            Contacts ->
+                                "Contacts"
+                }
 
-            LabelConnec label ->
-                label ++ " connectivity"
+        LabelConnec label ->
+            Element.text <| label ++ " connectivity"

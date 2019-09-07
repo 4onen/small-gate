@@ -1,4 +1,4 @@
-module Types exposing (..)
+module Types exposing (Drag, Layer, LayerID(..), Layers, Model, Msg(..), Tool(..), View(..), funcFromID, layerIDs)
 
 import Dict exposing (Dict)
 import Grid exposing (Grid)
@@ -61,13 +61,8 @@ type alias Drag =
 
 
 type Tool
-    = DrawTool LayerID
-    | LabelTool
-
-
-type ToolStatus
-    = Drawing LayerID (Maybe Drag)
-    | TypingLabel String (Maybe ( Int, Int ))
+    = Drawing (Maybe Drag)
+    | TypingLabel String
 
 
 type View
@@ -79,7 +74,8 @@ type View
 type alias Model =
     { layers : Layers
     , labels : Dict String ( Int, Int )
-    , tool : ToolStatus
+    , selectedLayer : LayerID
+    , tool : Tool
     , views : List View
     }
 
@@ -89,6 +85,7 @@ type Msg
     | DragMove Int Int
     | DragUp Int Int
     | PickTool Tool
+    | PickLayer LayerID
     | ChangeLabel String
     | RemoveLabel String
     | ToggleView View
