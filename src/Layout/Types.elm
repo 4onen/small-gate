@@ -1,7 +1,7 @@
-module Types exposing (Drag, Layer, LayerID(..), Layers, Model, Msg(..), Tool(..), View(..), funcFromID, layerIDs)
+module Layout.Types exposing (Drag, Layer, LayerID(..), Layers, Model, Msg(..), Tool(..), View(..), funcFromID, layerIDs)
 
 import Dict exposing (Dict)
-import Grid exposing (Grid)
+import Layout.Grid exposing (Grid)
 
 
 type LayerID

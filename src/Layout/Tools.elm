@@ -1,8 +1,8 @@
-module Tools exposing (ToolFunction, toolFunction)
+module Layout.Tools exposing (ToolFunction, toolFunction)
 
 import Dict
-import Grid
-import Types exposing (..)
+import Layout.Grid
+import Layout.Types exposing (..)
 
 
 type alias ToolFunction =
@@ -59,7 +59,7 @@ flipRect ( startX, startY ) ( x, y ) selectedLayer layers =
 
         newVal =
             layer
-                |> Grid.get startX startY
+                |> Layout.Grid.get startX startY
                 |> Basics.not
 
         newLayer =
@@ -69,7 +69,7 @@ flipRect ( startX, startY ) ( x, y ) selectedLayer layers =
                         List.range (min startY y) (max startY y)
                             |> List.map (Tuple.pair thisX)
                     )
-                |> List.foldl (\( thisX, thisY ) -> Grid.set thisX thisY newVal) layer
+                |> List.foldl (\( thisX, thisY ) -> Layout.Grid.set thisX thisY newVal) layer
     in
     updateLayer selectedLayer newLayer layers
 

@@ -1,10 +1,10 @@
-module Renderers exposing (..)
+module Layout.Renderers exposing (layerViewerFromID, renderLabels)
 
 import Dict exposing (Dict)
-import Grid exposing (Grid)
+import Layout.Grid as Grid exposing (Grid)
+import Layout.Types exposing (..)
 import Svg exposing (Svg)
 import Svg.Attributes as SA
-import Types exposing (..)
 
 
 layerViewerFromID : LayerID -> (Grid -> ( Int, Int ) -> List (Svg msg))

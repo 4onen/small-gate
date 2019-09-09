@@ -1,9 +1,9 @@
-module Views exposing (arrange, defaultViews, sort, view)
+module Layout.Views exposing (arrange, defaultViews, sort, view)
 
 import Element exposing (Element)
 import Element.Font
 import Element.Input
-import Types exposing (..)
+import Layout.Types exposing (..)
 
 
 defaultViews : List View

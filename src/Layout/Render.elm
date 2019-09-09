@@ -1,15 +1,15 @@
-module Render exposing (view)
+module Layout.Render exposing (view)
 
 import Dict exposing (Dict)
 import Element
-import Grid exposing (Grid)
 import Html
 import Html.Attributes as HA
-import Renderers exposing (..)
+import Layout.Grid exposing (Grid)
+import Layout.Renderers exposing (..)
+import Layout.Types exposing (..)
 import Svg exposing (Svg)
 import Svg.Attributes as SA
 import SvgClick
-import Types exposing (..)
 
 
 view : List View -> { model | labels : Dict String ( Int, Int ), layers : Layers } -> Element.Element Msg
@@ -26,7 +26,7 @@ view views model =
                                     |> Svg.g []
 
                             LayerView id ->
-                                Grid.render
+                                Layout.Grid.render
                                     (funcFromID id model.layers)
                                     (layerViewerFromID id)
                                     |> Svg.g []
@@ -72,7 +72,7 @@ viewLayersSVG layers =
                     layerViewer =
                         layerViewerFromID id
                 in
-                Grid.render layer layerViewer
+                Layout.Grid.render layer layerViewer
                     |> Svg.g []
             )
 
@@ -84,7 +84,7 @@ viewBox ( ( x1, y1 ), ( x2, y2 ) ) =
 
 viewBoxOfList : List Grid -> ( ( Int, Int ), ( Int, Int ) )
 viewBoxOfList =
-    List.map Grid.activeArea
+    List.map Layout.Grid.activeArea
         >> List.foldl
             (\pta ptb ->
                 case ( pta, ptb ) of

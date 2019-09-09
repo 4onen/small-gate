@@ -1,4 +1,19 @@
-module Grid exposing (Grid, Renderer, activeArea, empty, fourNeighbours, fromList, get, indexedMap, initialize, map, render, set, toList, union)
+module Layout.Grid exposing
+    ( Grid
+    , Renderer
+    , activeArea
+    , empty
+    , fourNeighbours
+    , fromList
+    , get
+    , indexedMap
+    , initialize
+    , map
+    , render
+    , set
+    , toList
+    , union
+    )
 
 import Set exposing (Set)
 import Svg exposing (Svg)

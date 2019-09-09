@@ -1,4 +1,4 @@
-module Workspace exposing (view)
+module Layout.Workspace exposing (view)
 
 import Dict exposing (Dict)
 import Element exposing (Element)
@@ -6,10 +6,10 @@ import Element.Background
 import Element.Border
 import Element.Font
 import Element.Input
-import Grid exposing (Grid)
-import Render
-import Types exposing (..)
-import Views
+import Layout.Grid exposing (Grid)
+import Layout.Render
+import Layout.Types exposing (..)
+import Layout.Views as Views
 
 
 view : Model -> Element Msg
@@ -27,7 +27,7 @@ view model =
         ]
         [ toolbar [ Element.height <| Element.px 50 ] model
         , Element.row [ Element.centerX, Element.centerY ]
-            [ Render.view sortedViews model
+            [ Layout.Render.view sortedViews model
             , Element.column
                 [ Element.width <| Element.px 200
                 , Element.height Element.fill
