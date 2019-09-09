@@ -83,27 +83,17 @@ update msg model =
         RemoveLabel label ->
             { model | labels = Dict.remove label model.labels }
 
-        _ ->
-            case model.tool of
-                Drawing mdrag ->
-                    updateDrawing msg mdrag model
+        DragDown x y ->
+            (.dragDown <| Tools.toolFunction model.tool) x y model
 
-                TypingLabel label ->
-                    case msg of
-                        ChangeLabel str ->
-                            { model | tool = TypingLabel (String.filter Char.isAlphaNum str) }
+        DragMove x y ->
+            (.dragMove <| Tools.toolFunction model.tool) x y model
 
-                        DragUp x y ->
-                            { model
-                                | tool = Drawing Nothing
-                                , labels =
-                                    case String.filter Char.isAlphaNum label of
-                                        "" ->
-                                            model.labels
+        DragUp x y ->
+            (.dragUp <| Tools.toolFunction model.tool) x y model
 
-                                        cleanLabel ->
-                                            Dict.insert cleanLabel ( x, y ) model.labels
-                            }
+        ChangeLabel _ ->
+            (.update <| Tools.toolFunction model.tool) msg model
 
-                        _ ->
-                            model
+        Noop ->
+            (.update <| Tools.toolFunction model.tool) msg model

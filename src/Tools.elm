@@ -1,10 +1,11 @@
-module Tools exposing (ToolFunctions, flipRect, updateDrawing, updateLayer)
+module Tools exposing (ToolFunction, toolFunction)
 
+import Dict
 import Grid
 import Types exposing (..)
 
 
-type alias ToolFunctions =
+type alias ToolFunction =
     { dragDown : Int -> Int -> Model -> Model
     , dragMove : Int -> Int -> Model -> Model
     , dragUp : Int -> Int -> Model -> Model
@@ -12,33 +13,42 @@ type alias ToolFunctions =
     }
 
 
-updateDrawing : Msg -> Maybe Drag -> Model -> Model
-updateDrawing msg mdrag model =
-    case msg of
-        DragDown x y ->
+toolFunction : Tool -> ToolFunction
+toolFunction tool =
+    case tool of
+        Drawing _ ->
+            drawTool
+
+        TypingLabel _ ->
+            labelTool
+
+
+drawTool : ToolFunction
+drawTool =
+    { dragDown =
+        \x y model ->
             { model | tool = Drawing <| Just (Drag ( x, y ) ( x, y )) }
-
-        DragMove x y ->
-            case mdrag of
-                Nothing ->
-                    model
-
-                Just { start, curr } ->
+    , dragMove =
+        \x y model ->
+            case model.tool of
+                Drawing (Just { start, curr }) ->
                     { model | tool = Drawing <| Just (Drag start ( x, y )) }
 
-        DragUp x y ->
-            case mdrag of
-                Nothing ->
+                _ ->
                     model
-
-                Just { start } ->
+    , dragUp =
+        \x y model ->
+            case model.tool of
+                Drawing (Just { start }) ->
                     { model
                         | tool = Drawing Nothing
                         , layers = flipRect start ( x, y ) model.selectedLayer model.layers
                     }
 
-        _ ->
-            model
+                _ ->
+                    model
+    , update = always identity
+    }
 
 
 flipRect : ( Int, Int ) -> ( Int, Int ) -> LayerID -> Layers -> Layers
@@ -84,3 +94,35 @@ updateLayer id updatedLayer layers =
 
         Contacts ->
             { layers | contacts = updatedLayer }
+
+
+labelTool : ToolFunction
+labelTool =
+    { dragDown = always <| always identity
+    , dragMove = always <| always identity
+    , dragUp =
+        \x y model ->
+            case model.tool of
+                TypingLabel label ->
+                    { model
+                        | tool = Drawing Nothing
+                        , labels =
+                            case String.filter Char.isAlphaNum label of
+                                "" ->
+                                    model.labels
+
+                                cleanLabel ->
+                                    Dict.insert cleanLabel ( x, y ) model.labels
+                    }
+
+                _ ->
+                    model
+    , update =
+        \msg model ->
+            case msg of
+                ChangeLabel str ->
+                    { model | tool = TypingLabel (String.filter Char.isAlphaNum str) }
+
+                _ ->
+                    model
+    }
