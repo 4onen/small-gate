@@ -32,29 +32,26 @@ init =
                 , Parallel [ Series [ Single "X", Single "Y", Single "Wat", Single "V" ], Single "Z" ]
                 ]
     in
-    Model <|
-        Gate
-            (Strand.reverse logic)
-            logic
+    Strand.reverse logic
 
 
 update : Msg -> Model -> Model
-update msg { gate } =
-    case Strand.Path.delete (Debug.log "path" <| List.reverse msg) gate.pmos of
-        Just m ->
-            { gate = { gate | pmos = m } }
+update msg model =
+    case Strand.Path.delete (Debug.log "path" <| List.reverse msg) model of
+        Just newmodel ->
+            newmodel
 
         Nothing ->
-            { gate = gate }
+            model
 
 
-view : { a | gate : Gate Input } -> Element Msg
-view { gate } =
+view : Model -> Element Msg
+view model =
     Element.column [ Element.centerX, Element.centerY ]
         [ viewVdd
-        , viewStrand PMOS gate.pmos
+        , viewStrand PMOS model
         , viewOutput "Y"
-        , viewStrand NMOS <| Strand.reverse gate.pmos
+        , viewStrand NMOS <| Strand.reverse model
         , viewGND
         ]
 
