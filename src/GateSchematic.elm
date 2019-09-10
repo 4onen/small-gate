@@ -3,8 +3,10 @@ module GateSchematic exposing (init, update, view)
 import Browser
 import Element exposing (..)
 import Element.Border
+import Element.Events
 import GateSchematic.Types exposing (..)
 import Strand exposing (Strand(..))
+import Strand.Path exposing (Path)
 
 
 main =
@@ -13,6 +15,10 @@ main =
         , update = update
         , view = Element.layout [] << view
         }
+
+
+type alias Msg =
+    Path
 
 
 init : Model
@@ -32,23 +38,28 @@ init =
             logic
 
 
-update : msg -> Model -> Model
-update =
-    always <| always init
+update : Msg -> Model -> Model
+update msg { gate } =
+    case Strand.Path.delete (Debug.log "path" <| List.reverse msg) gate.pmos of
+        Just m ->
+            { gate = { gate | pmos = m } }
+
+        Nothing ->
+            { gate = gate }
 
 
-view : { a | gate : Gate Input } -> Element msg
+view : { a | gate : Gate Input } -> Element Msg
 view { gate } =
     Element.column [ Element.centerX, Element.centerY ]
         [ viewVdd
         , viewStrand PMOS gate.pmos
         , viewOutput "Y"
-        , viewStrand NMOS gate.nmos
+        , viewStrand NMOS <| Strand.reverse gate.pmos
         , viewGND
         ]
 
 
-viewStrand : TransistorKind -> Strand Input -> Element msg
+viewStrand : TransistorKind -> Strand Input -> Element Msg
 viewStrand tkind =
     let
         ttext =
@@ -67,10 +78,14 @@ viewStrand tkind =
                 ]
                 Element.none
     in
-    Strand.fold
+    Strand.Path.pathedFold
         { single =
-            \i ->
-                column [ centerX, height fill ]
+            \p i ->
+                column
+                    [ centerX
+                    , height fill
+                    , Element.Events.onClick p
+                    ]
                     [ filler
                     , Element.row [ Element.alignRight, width <| px 55 ]
                         [ Element.el
@@ -94,12 +109,14 @@ viewStrand tkind =
                 [ Element.centerX
                 , Element.height Element.fill
                 ]
+                |> always
         , parallel =
             Element.row
                 [ Element.Border.widthXY 0 1
                 , Element.centerX
                 , Element.spacing 20
                 ]
+                |> always
         }
         >> Element.el [ centerX, Element.Border.widthXY 0 2 ]
 
