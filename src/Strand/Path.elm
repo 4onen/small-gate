@@ -1,5 +1,7 @@
 module Strand.Path exposing (..)
 
+import List.Extra
+import List.MyExtra
 import Strand exposing (Strand(..))
 
 
@@ -15,27 +17,6 @@ empty =
 delete : Path -> Strand a -> Maybe (Strand a)
 delete path strand =
     let
-        listDelete idx ls =
-            ls
-                |> List.drop (idx + 1)
-                |> (++) (List.take idx ls)
-
-        listUpdate idx f ls =
-            if idx < 0 || idx > List.length ls then
-                ls
-
-            else
-                ls
-                    |> List.indexedMap Tuple.pair
-                    |> List.filterMap
-                        (\( i, sa ) ->
-                            if i /= idx then
-                                Just sa
-
-                            else
-                                f sa
-                        )
-
         subStrandOp form result =
             case result of
                 [] ->
@@ -57,10 +38,10 @@ delete path strand =
                     Nothing
 
                 Series ls ->
-                    subStrandOp Series (listDelete idx ls)
+                    subStrandOp Series (List.Extra.removeAt idx ls)
 
                 Parallel ls ->
-                    subStrandOp Parallel (listDelete idx ls)
+                    subStrandOp Parallel (List.Extra.removeAt idx ls)
 
         idx :: remainingPath ->
             case strand of
@@ -68,10 +49,10 @@ delete path strand =
                     Just strand
 
                 Series ls ->
-                    subStrandOp Series <| listUpdate idx (delete remainingPath) ls
+                    subStrandOp Series <| List.MyExtra.updateFilterAt idx (delete remainingPath) ls
 
                 Parallel ls ->
-                    subStrandOp Parallel <| listUpdate idx (delete remainingPath) ls
+                    subStrandOp Parallel <| List.MyExtra.updateFilterAt idx (delete remainingPath) ls
 
 
 pathedMap : (Path -> a -> b) -> Strand a -> Strand b
