@@ -111,6 +111,7 @@ viewStrand tkind =
             Element.row
                 [ Element.Border.widthXY 0 1
                 , Element.centerX
+                , height fill
                 , Element.spacing 20
                 ]
                 |> always
