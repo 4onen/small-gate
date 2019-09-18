@@ -1,105 +1,64 @@
 module Strand exposing (..)
 
-
-type Either a b
-    = Left a
-    | Right b
+import Either exposing (Either(..))
 
 
 type Strand bead
-    = Single (Either (Fray bead) bead)
-    | Series (Either (Fray bead) bead) (Strand bead)
+    = Strand (List (Either (Fray bead) bead))
 
 
 type Fray bead
-    = Loose (Either (Strand bead) bead)
-    | Parallel (Either (Strand bead) bead) (Fray bead)
+    = Fray (List (Either (Strand bead) bead))
+
+
+type Alignment bead
+    = Series (Strand bead)
+    | Single bead
+    | Parallel (Fray bead)
 
 
 map : (a -> b) -> Strand a -> Strand b
-map f strand =
-    case strand of
-        Single below ->
-            Single
-                (mapEither (mapFray f) f below)
-
-        Series below rest ->
-            Series
-                (mapEither (mapFray f) f below)
-                (map f rest)
+map f (Strand strand) =
+    Strand (List.map (Either.map (mapFray f) f) strand)
 
 
 mapFray : (a -> b) -> Fray a -> Fray b
-mapFray f fray =
-    case fray of
-        Loose below ->
-            Loose (mapEither (map f) f below)
-
-        Parallel below rest ->
-            Parallel
-                (mapEither (map f) f below)
-                (mapFray f rest)
+mapFray f (Fray fray) =
+    Fray (List.map (Either.map (map f) f) fray)
 
 
-mapEither : (a -> c) -> (b -> d) -> Either a b -> Either c d
-mapEither fl fr either =
-    case either of
-        Left vl ->
-            Left (fl vl)
-
-        Right vr ->
-            Right (fr vr)
+fold : { single : a -> b, strand : List b -> b, fray : List b -> b } -> Strand a -> b
+fold functions (Strand strand) =
+    strand
+        |> List.map (Either.fold (foldFray functions) functions.single)
+        |> functions.strand
 
 
-foldEither : (a -> c) -> (b -> c) -> Either a b -> c
-foldEither fl fr either =
-    case either of
-        Left vl ->
-            fl vl
-
-        Right vr ->
-            fr vr
+foldFray : { single : a -> b, strand : List b -> b, fray : List b -> b } -> Fray a -> b
+foldFray functions (Fray fray) =
+    fray
+        |> List.map (Either.fold (fold functions) functions.single)
+        |> functions.fray
 
 
-fold : { single : a -> b, loose : a -> b, series : List b -> b, parallel : List b -> b } -> Strand a -> b
-fold functions strand =
-    case strand of
-        Single e ->
-            foldEither (foldFray functions) functions.single e
+reverse : Alignment a -> Alignment a
+reverse align =
+    case align of
+        Single _ ->
+            align
 
-        Series _ _ ->
-            strand
-                |> listifyStrand (foldFray functions) functions.single
-                |> functions.series
+        Series strand ->
+            Parallel <| reverseStrand strand
 
-
-foldFray : { single : a -> b, loose : a -> b, series : List b -> b, parallel : List b -> b } -> Fray a -> b
-foldFray functions fray =
-    case fray of
-        Loose e ->
-            foldEither (fold functions) functions.loose e
-
-        Parallel _ _ ->
-            fray
-                |> listifyFray (fold functions) functions.loose
-                |> functions.parallel
+        Parallel fray ->
+            Series <| reverseFray fray
 
 
-listifyStrand : (Fray a -> b) -> (a -> b) -> Strand a -> List b
-listifyStrand fixFray fixSingle strand =
-    case strand of
-        Single below ->
-            List.singleton (foldEither fixFray fixSingle below)
-
-        Series below rest ->
-            foldEither fixFray fixSingle below :: listifyStrand fixFray fixSingle rest
+reverseStrand : Strand a -> Fray a
+reverseStrand (Strand strand) =
+    Fray (List.map (Either.map reverseFray identity) strand)
 
 
-listifyFray : (Strand a -> b) -> (a -> b) -> Fray a -> List b
-listifyFray fixStrand fixLoose strand =
-    case strand of
-        Loose below ->
-            List.singleton (foldEither fixStrand fixLoose below)
-
-        Parallel below rest ->
-            foldEither fixStrand fixLoose below :: listifyFray fixStrand fixLoose rest
+reverseFray : Fray a -> Strand a
+reverseFray (Fray fray) =
+    Strand (List.map (Either.map reverseStrand identity) fray)

@@ -1,10 +1,10 @@
 module GateSchematic.Types exposing (..)
 
-import Strand exposing (Strand)
+import Strand exposing (Alignment)
 
 
 type alias Model =
-    Strand Input
+    Alignment Input
 
 
 type alias Input =

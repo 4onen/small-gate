@@ -1,12 +1,13 @@
 module GateSchematic exposing (init, update, view)
 
 import Browser
+import Either exposing (Either(..))
 import Element exposing (..)
 import Element.Border
 import Element.Events
 import GateSchematic.Types exposing (..)
-import Strand exposing (Strand(..))
-import Strand.Path exposing (Path)
+import Strand exposing (Alignment(..), Fray(..), Strand(..))
+import Strand.Pathed exposing (Path)
 
 
 main =
@@ -25,19 +26,24 @@ init : Model
 init =
     let
         logic =
-            Series
-                [ Single "G"
-                , Parallel [ Single "A", Single "B" ]
-                , Parallel [ Single "C", Single "D", Series [ Single "E", Single "F" ] ]
-                , Parallel [ Series [ Single "X", Single "Y", Single "Wat", Single "V" ], Single "Z" ]
-                ]
+            Series <|
+                Strand
+                    [ Right "G"
+                    , Left <| Fray [ Right "A", Right "B" ]
+                    , Left <| Fray [ Right "C", Right "D", Left <| Strand [ Right "E", Right "F" ] ]
+                    , Left <|
+                        Fray
+                            [ Left <| Strand [ Right "X", Right "Y", Right "Wat", Right "V" ]
+                            , Right "Z"
+                            ]
+                    ]
     in
     Strand.reverse logic
 
 
 update : Msg -> Model -> Model
 update msg model =
-    case Strand.Path.delete (Debug.log "path" <| List.reverse msg) model of
+    case Strand.Pathed.delete (Debug.log "path" <| List.reverse msg) model of
         Just newmodel ->
             newmodel
 
@@ -56,7 +62,7 @@ view model =
         ]
 
 
-viewStrand : TransistorKind -> Strand Input -> Element Msg
+viewStrand : TransistorKind -> Alignment Input -> Element Msg
 viewStrand tkind =
     let
         ttext =
@@ -75,7 +81,7 @@ viewStrand tkind =
                 ]
                 Element.none
     in
-    Strand.Path.pathedFold
+    Strand.Pathed.fold
         { single =
             \p i ->
                 column
@@ -101,13 +107,13 @@ viewStrand tkind =
                         ]
                     , filler
                     ]
-        , series =
+        , strand =
             Element.column
                 [ Element.centerX
                 , Element.height Element.fill
                 ]
                 |> always
-        , parallel =
+        , fray =
             Element.row
                 [ Element.Border.widthXY 0 1
                 , Element.centerX
@@ -116,7 +122,7 @@ viewStrand tkind =
                 ]
                 |> always
         }
-        >> Element.el [ centerX, Element.Border.widthXY 0 2 ]
+        >> Element.el [ centerX, Element.Border.widthXY 0 1 ]
 
 
 viewVdd : Element msg
