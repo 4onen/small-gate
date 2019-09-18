@@ -1,4 +1,4 @@
-module Strand.Pathed exposing (Path, delete, empty, fold, map)
+module Strand.Pathed exposing (Path, delete, empty, fold, insertParallel, insertSeries, map)
 
 import Either exposing (Either(..))
 import List.Extra
@@ -145,6 +145,123 @@ deleteInFray path (Fray fray) =
                                                     |> (\( l, r ) -> l ++ val ++ r)
 
 
+insertSeries : Path -> a -> Alignment a -> Alignment a
+insertSeries =
+    let
+        insertHere : List (Either (Fray a) a) -> Alignment a
+        insertHere =
+            Series << Strand
+    in
+    insert insertHere
+
+
+insertParallel : Path -> a -> Alignment a -> Alignment a
+insertParallel =
+    let
+        insertHere : List (Either (Strand a) a) -> Alignment a
+        insertHere =
+            Parallel << Fray
+    in
+    insert insertHere
+
+
+insert : (List (Either subtype a) -> Alignment a) -> Path -> a -> Alignment a -> Alignment a
+insert inserter path val alignment =
+    let
+        insertHere : Int -> Alignment a
+        insertHere idx =
+            case alignment of
+                Single a ->
+                    if idx > 0 then
+                        inserter [ Right a, Right val ]
+
+                    else
+                        inserter [ Right val, Right a ]
+
+                Series (Strand ls) ->
+                    ls
+                        |> Debug.log "Series"
+                        |> List.Extra.splitAt idx
+                        |> (\( a, b ) -> a ++ (Right val :: b))
+                        |> Strand
+                        |> Series
+
+                Parallel (Fray ls) ->
+                    ls
+                        |> Debug.log "Parallel"
+                        |> List.Extra.splitAt idx
+                        |> (\( a, b ) -> a ++ (Right val :: b))
+                        |> Fray
+                        |> Parallel
+
+        insertBelow idx remainingPath parallelConstructor strand =
+            (case List.Extra.getAt idx strand of
+                Nothing ->
+                    Nothing
+
+                Just (Right a) ->
+                    Just (Single a)
+
+                Just (Left fray) ->
+                    Just (parallelConstructor fray)
+            )
+                |> Maybe.map (insert inserter remainingPath val)
+    in
+    case path of
+        [] ->
+            alignment
+
+        idx :: [] ->
+            insertHere idx
+
+        idx :: remainingPath ->
+            case alignment of
+                Single a ->
+                    insertHere idx
+
+                Series (Strand strand) ->
+                    case insertBelow idx remainingPath Parallel strand of
+                        Nothing ->
+                            alignment
+
+                        Just (Single _) ->
+                            alignment
+
+                        Just (Series (Strand newStranding)) ->
+                            strand
+                                |> List.Extra.splitAt idx
+                                |> (\( l, r ) -> l ++ newStranding ++ r)
+                                |> Strand
+                                |> Series
+
+                        Just (Parallel (Fray newFraying)) ->
+                            strand
+                                |> List.Extra.setAt idx (Left (Fray newFraying))
+                                |> Strand
+                                |> Series
+
+                Parallel (Fray fray) ->
+                    case insertBelow idx remainingPath Series fray of
+                        Nothing ->
+                            alignment
+
+                        Just (Single _) ->
+                            alignment
+
+                        Just (Series (Strand newStranding)) ->
+                            fray
+                                |> List.Extra.setAt idx (Left (Strand newStranding))
+                                |> Fray
+                                |> Parallel
+
+                        Just (Parallel (Fray newFraying)) ->
+                            fray
+                                |> List.Extra.splitAt idx
+                                |> (\( l, r ) -> l ++ newFraying ++ r)
+                                |> Fray
+                                |> Parallel
+
+
 map : (Path -> a -> b) -> Strand a -> Strand b
 map function strand =
     pathedMapHelper empty function strand
@@ -152,12 +269,12 @@ map function strand =
 
 pathedMapHelper : Path -> (Path -> a -> b) -> Strand a -> Strand b
 pathedMapHelper p f (Strand strand) =
-    Strand (List.indexedMap (\idx -> Either.map (pathedMapFrayHelper (idx :: p) f) (f (idx :: p))) strand)
+    Strand (List.indexedMap (\idx -> Either.map (pathedMapFrayHelper (idx :: p) f) (f (List.reverse <| idx :: p))) strand)
 
 
 pathedMapFrayHelper : Path -> (Path -> a -> b) -> Fray a -> Fray b
 pathedMapFrayHelper p f (Fray fray) =
-    Fray (List.indexedMap (\idx -> Either.map (pathedMapHelper (idx :: p) f) (f (idx :: p))) fray)
+    Fray (List.indexedMap (\idx -> Either.map (pathedMapHelper (idx :: p) f) (f (List.reverse <| idx :: p))) fray)
 
 
 fold : { single : Path -> a -> b, strand : Path -> List b -> b, fray : Path -> List b -> b } -> Alignment a -> b
@@ -180,7 +297,7 @@ pathedFoldStrandHelper p functions (Strand strand) =
             (\idx ->
                 Either.fold
                     (pathedFoldFrayHelper (idx :: p) functions)
-                    (functions.single (idx :: p))
+                    (functions.single (List.reverse <| idx :: p))
             )
         |> functions.strand p
 
@@ -192,6 +309,6 @@ pathedFoldFrayHelper p functions (Fray fray) =
             (\idx ->
                 Either.fold
                     (pathedFoldStrandHelper (idx :: p) functions)
-                    (functions.single (idx :: p))
+                    (functions.single (List.reverse <| idx :: p))
             )
         |> functions.fray p

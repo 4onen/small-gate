@@ -5,7 +5,9 @@ import Either exposing (Either(..))
 import Element exposing (..)
 import Element.Border
 import Element.Events
+import Element.Input
 import GateSchematic.Types exposing (..)
+import List.Extra
 import Strand exposing (Alignment(..), Fray(..), Strand(..))
 import Strand.Pathed exposing (Path)
 
@@ -18,8 +20,10 @@ main =
         }
 
 
-type alias Msg =
-    Path
+type Msg
+    = Delete Path
+    | AddParallel Path
+    | AddSeries Path
 
 
 init : Model
@@ -43,12 +47,20 @@ init =
 
 update : Msg -> Model -> Model
 update msg model =
-    case Strand.Pathed.delete (Debug.log "path" <| List.reverse msg) model of
-        Just newmodel ->
-            newmodel
+    case msg of
+        Delete path ->
+            case Strand.Pathed.delete (Debug.log "path" path) model of
+                Just newmodel ->
+                    newmodel
 
-        Nothing ->
-            model
+                Nothing ->
+                    model
+
+        AddParallel path ->
+            Strand.Pathed.insertParallel path "K" model
+
+        AddSeries path ->
+            Strand.Pathed.insertSeries path "L" model
 
 
 view : Model -> Element Msg
@@ -87,12 +99,35 @@ viewStrand tkind =
                 column
                     [ centerX
                     , height fill
-                    , Element.Events.onClick p
+                    , onRight <|
+                        Element.Input.button [ Element.centerY ]
+                            { label = Element.text "+"
+                            , onPress = Just (AddParallel (List.Extra.updateAt (List.length p - 1) ((+) 1) p))
+                            }
+                    , onLeft <|
+                        Element.Input.button [ Element.centerY ]
+                            { label = Element.text "+"
+                            , onPress = Just (AddParallel p)
+                            }
+                    , above <|
+                        Element.Input.button [ centerX ]
+                            { label = Element.text "+"
+                            , onPress = Just (AddSeries p)
+                            }
+                    , below <|
+                        Element.Input.button [ centerX ]
+                            { label = Element.text "+"
+                            , onPress = Just (AddSeries (List.Extra.updateAt (List.length p - 1) ((+) 1) p))
+                            }
                     ]
                     [ filler
-                    , Element.row [ Element.alignRight, width <| px 55 ]
+                    , Element.row
+                        [ Element.alignRight
+                        , width <| px 55
+                        ]
                         [ Element.el
                             [ onLeft <| Element.text <| String.append i ttext
+                            , Element.Events.onClick (Delete p)
                             , moveLeft 2
                             , alignRight
                             , height fill
