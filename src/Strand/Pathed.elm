@@ -1,4 +1,4 @@
-module Strand.Pathed exposing (Path, delete, empty, fold, insertParallel, insertSeries, map)
+module Strand.Pathed exposing (Path, above, below, delete, empty, fold, insertParallel, insertSeries, left, map, right)
 
 import Either exposing (Either(..))
 import List.Extra
@@ -12,6 +12,26 @@ type alias Path =
 empty : Path
 empty =
     []
+
+
+above : Path -> Path
+above =
+    List.reverse >> (::) 0 >> List.reverse
+
+
+below : Path -> Path
+below =
+    List.reverse >> (::) 1 >> List.reverse
+
+
+left : Path -> Path
+left =
+    above
+
+
+right : Path -> Path
+right =
+    below
 
 
 delete : Path -> Alignment a -> Maybe (Alignment a)
@@ -180,7 +200,6 @@ insert inserter path val alignment =
 
                 Series (Strand ls) ->
                     ls
-                        |> Debug.log "Series"
                         |> List.Extra.splitAt idx
                         |> (\( a, b ) -> a ++ (Right val :: b))
                         |> Strand
@@ -188,7 +207,6 @@ insert inserter path val alignment =
 
                 Parallel (Fray ls) ->
                     ls
-                        |> Debug.log "Parallel"
                         |> List.Extra.splitAt idx
                         |> (\( a, b ) -> a ++ (Right val :: b))
                         |> Fray
@@ -229,6 +247,7 @@ insert inserter path val alignment =
 
                         Just (Series (Strand newStranding)) ->
                             strand
+                                |> List.Extra.removeAt idx
                                 |> List.Extra.splitAt idx
                                 |> (\( l, r ) -> l ++ newStranding ++ r)
                                 |> Strand
@@ -256,6 +275,7 @@ insert inserter path val alignment =
 
                         Just (Parallel (Fray newFraying)) ->
                             fray
+                                |> List.Extra.removeAt idx
                                 |> List.Extra.splitAt idx
                                 |> (\( l, r ) -> l ++ newFraying ++ r)
                                 |> Fray

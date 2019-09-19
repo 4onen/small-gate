@@ -102,28 +102,28 @@ viewStrand tkind =
                     , onRight <|
                         Element.Input.button [ Element.centerY ]
                             { label = Element.text "+"
-                            , onPress = Just (AddParallel (List.Extra.updateAt (List.length p - 1) ((+) 1) p))
+                            , onPress = Just (AddParallel (Strand.Pathed.right p))
                             }
                     , onLeft <|
                         Element.Input.button [ Element.centerY ]
                             { label = Element.text "+"
-                            , onPress = Just (AddParallel p)
-                            }
-                    , above <|
-                        Element.Input.button [ centerX ]
-                            { label = Element.text "+"
-                            , onPress = Just (AddSeries p)
-                            }
-                    , below <|
-                        Element.Input.button [ centerX ]
-                            { label = Element.text "+"
-                            , onPress = Just (AddSeries (List.Extra.updateAt (List.length p - 1) ((+) 1) p))
+                            , onPress = Just (AddParallel (Strand.Pathed.left p))
                             }
                     ]
                     [ filler
                     , Element.row
                         [ Element.alignRight
                         , width <| px 55
+                        , above <|
+                            Element.Input.button [ centerX ]
+                                { label = Element.text "+"
+                                , onPress = Just (AddSeries (Strand.Pathed.above p))
+                                }
+                        , below <|
+                            Element.Input.button [ centerX ]
+                                { label = Element.text "+"
+                                , onPress = Just (AddSeries (Strand.Pathed.below p))
+                                }
                         ]
                         [ Element.el
                             [ onLeft <| Element.text <| String.append i ttext
