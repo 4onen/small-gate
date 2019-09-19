@@ -10,8 +10,12 @@ type alias Model =
     }
 
 
+type alias Width =
+    Int
+
+
 type alias Input =
-    String
+    ( String, Width )
 
 
 type TransistorKind

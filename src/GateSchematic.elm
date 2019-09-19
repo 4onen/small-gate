@@ -37,7 +37,7 @@ type Msg
 
 init : Model
 init =
-    Model "" (Single "A") Nothing
+    Model "" (Single ( "A", 1 )) Nothing
 
 
 update : Msg -> Model -> Model
@@ -53,14 +53,14 @@ update msg ({ gate, labelToAdd } as model) =
 
         AddParallel path ->
             if String.length labelToAdd > 0 then
-                { model | gate = Strand.Pathed.insertParallel path labelToAdd gate, labelToAdd = "" }
+                { model | gate = Strand.Pathed.insertParallel path ( labelToAdd, 1 ) gate, labelToAdd = "" }
 
             else
                 model
 
         AddSeries path ->
             if String.length labelToAdd > 0 then
-                { model | gate = Strand.Pathed.insertSeries path labelToAdd gate, labelToAdd = "" }
+                { model | gate = Strand.Pathed.insertSeries path ( labelToAdd, 1 ) gate, labelToAdd = "" }
 
             else
                 model
@@ -105,7 +105,7 @@ view ({ gate, labelToAdd, numInputsToShow } as model) =
                 }
             :: (case numInputsToShow of
                     Just n ->
-                        [ viewLogic n gate ]
+                        [ viewLogic n (Strand.map Tuple.first gate) ]
 
                     Nothing ->
                         []
@@ -151,7 +151,7 @@ viewStrand tkind canAdd =
     in
     Strand.Pathed.fold
         { single =
-            \p i ->
+            \p ( i, _ ) ->
                 column
                     [ centerX
                     , height fill
@@ -276,7 +276,7 @@ viewOutput label =
         Element.none
 
 
-viewLogic : Int -> Alignment Input -> Element Msg
+viewLogic : Int -> Alignment String -> Element Msg
 viewLogic numInputs gate =
     let
         inputs =

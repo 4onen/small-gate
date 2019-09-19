@@ -17,14 +17,27 @@ type Alignment bead
     | Parallel (Fray bead)
 
 
-map : (a -> b) -> Strand a -> Strand b
-map f (Strand strand) =
+map : (a -> b) -> Alignment a -> Alignment b
+map f alignment =
+    case alignment of
+        Single a ->
+            Single <| f a
+
+        Series strand ->
+            Series <| mapStrand f strand
+
+        Parallel fray ->
+            Parallel <| mapFray f fray
+
+
+mapStrand : (a -> b) -> Strand a -> Strand b
+mapStrand f (Strand strand) =
     Strand (List.map (Either.map (mapFray f) f) strand)
 
 
 mapFray : (a -> b) -> Fray a -> Fray b
 mapFray f (Fray fray) =
-    Fray (List.map (Either.map (map f) f) fray)
+    Fray (List.map (Either.map (mapStrand f) f) fray)
 
 
 fold : { single : a -> b, strand : List b -> b, fray : List b -> b } -> Alignment a -> b
