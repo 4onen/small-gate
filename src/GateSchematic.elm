@@ -44,7 +44,7 @@ update : Msg -> Model -> Model
 update msg ({ gate, labelToAdd } as model) =
     case msg of
         Delete path ->
-            case Strand.Pathed.delete (Debug.log "path" path) gate of
+            case Strand.Pathed.delete path gate of
                 Just newmodel ->
                     { model | gate = newmodel }
 
