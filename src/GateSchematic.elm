@@ -158,6 +158,24 @@ viewStrand tkind =
                 |> always
         }
         >> Element.el [ centerX, Element.Border.widthXY 0 1 ]
+        >> (case tkind of
+                PMOS ->
+                    identity
+
+                NMOS ->
+                    Element.map
+                        (\msg ->
+                            case msg of
+                                AddParallel p ->
+                                    AddSeries p
+
+                                AddSeries p ->
+                                    AddParallel p
+
+                                other ->
+                                    other
+                        )
+           )
 
 
 viewVdd : Element msg
