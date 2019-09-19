@@ -82,15 +82,11 @@ update msg ({ gate, labelToAdd } as model) =
         ChangeLogicInputs i ->
             { model
                 | numInputsToShow =
-                    model.numInputsToShow
-                        |> Maybe.andThen
-                            (always <|
-                                if i == 0 then
-                                    Nothing
+                    if i == 0 || model.numInputsToShow == Nothing then
+                        Nothing
 
-                                else
-                                    Just i
-                            )
+                    else
+                        Just i
             }
 
 
