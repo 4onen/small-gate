@@ -27,8 +27,21 @@ mapFray f (Fray fray) =
     Fray (List.map (Either.map (map f) f) fray)
 
 
-fold : { single : a -> b, strand : List b -> b, fray : List b -> b } -> Strand a -> b
-fold functions (Strand strand) =
+fold : { single : a -> b, strand : List b -> b, fray : List b -> b } -> Alignment a -> b
+fold functions alignment =
+    case alignment of
+        Single a ->
+            functions.single a
+
+        Series strand ->
+            foldStrand functions strand
+
+        Parallel fray ->
+            foldFray functions fray
+
+
+foldStrand : { single : a -> b, strand : List b -> b, fray : List b -> b } -> Strand a -> b
+foldStrand functions (Strand strand) =
     strand
         |> List.map (Either.fold (foldFray functions) functions.single)
         |> functions.strand
@@ -37,7 +50,7 @@ fold functions (Strand strand) =
 foldFray : { single : a -> b, strand : List b -> b, fray : List b -> b } -> Fray a -> b
 foldFray functions (Fray fray) =
     fray
-        |> List.map (Either.fold (fold functions) functions.single)
+        |> List.map (Either.fold (foldStrand functions) functions.single)
         |> functions.fray
 
 

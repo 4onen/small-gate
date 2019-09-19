@@ -7,6 +7,7 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
+import GateSchematic.Logic
 import GateSchematic.RandomColor
 import GateSchematic.Types exposing (..)
 import List.Extra
@@ -72,10 +73,11 @@ view ({ gate, labelToAdd } as model) =
             , placeholder = Just <| Element.Input.placeholder [] (Element.text "A")
             , text = labelToAdd
             }
+        , Element.text (GateSchematic.Logic.toText (Strand.reverse gate))
         , viewVdd
-        , viewStrand PMOS (String.length labelToAdd > 0) gate
+        , viewStrand PMOS (String.length labelToAdd > 0) (Strand.reverse gate)
         , viewOutput "Y"
-        , viewStrand NMOS (String.length labelToAdd > 0) (Strand.reverse gate)
+        , viewStrand NMOS (String.length labelToAdd > 0) gate
         , viewGND
         ]
 
@@ -173,10 +175,10 @@ viewStrand tkind canAdd =
         }
         >> Element.el [ centerX, Element.Border.widthXY 0 1 ]
         >> (case tkind of
-                PMOS ->
+                NMOS ->
                     identity
 
-                NMOS ->
+                PMOS ->
                     Element.map
                         (\msg ->
                             case msg of
