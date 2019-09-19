@@ -335,7 +335,7 @@ viewLogic numInputs gate =
                                             , Element.Border.widthEach
                                                 { top = 1, bottom = 0, left = 0, right = 0 }
                                             ]
-                                            (Element.text (GateSchematic.Logic.toText (Strand.reverse gate)))
+                                            (Element.text (GateSchematic.Logic.toText gate))
                                      , width = shrink
                                      , view =
                                         \j ->

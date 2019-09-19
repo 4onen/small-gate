@@ -15,7 +15,6 @@ toText =
             \is ->
                 "(" ++ (is |> List.sort |> List.intersperse "+" |> String.concat) ++ ")"
         }
-        << Strand.reverse
 
 
 retrieveInputs : Alignment String -> Set String
