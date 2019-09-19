@@ -6,6 +6,7 @@ import Strand exposing (Alignment)
 type alias Model =
     { labelToAdd : String
     , gate : Alignment Input
+    , numInputsToShow : Maybe Int
     }
 
 
