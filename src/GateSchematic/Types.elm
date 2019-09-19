@@ -4,7 +4,9 @@ import Strand exposing (Alignment)
 
 
 type alias Model =
-    Alignment Input
+    { labelToAdd : String
+    , gate : Alignment Input
+    }
 
 
 type alias Input =

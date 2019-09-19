@@ -5,7 +5,9 @@ import Either exposing (Either(..))
 import Element exposing (..)
 import Element.Border
 import Element.Events
+import Element.Font
 import Element.Input
+import GateSchematic.RandomColor
 import GateSchematic.Types exposing (..)
 import List.Extra
 import Strand exposing (Alignment(..), Fray(..), Strand(..))
@@ -22,60 +24,64 @@ main =
 
 type Msg
     = Delete Path
+    | ChangeLabel String
     | AddParallel Path
     | AddSeries Path
 
 
 init : Model
 init =
-    let
-        logic =
-            Series <|
-                Strand
-                    [ Right "G"
-                    , Left <| Fray [ Right "A", Right "B" ]
-                    , Left <| Fray [ Right "C", Right "D", Left <| Strand [ Right "E", Right "F" ] ]
-                    , Left <|
-                        Fray
-                            [ Left <| Strand [ Right "X", Right "Y", Right "Wat", Right "V" ]
-                            , Right "Z"
-                            ]
-                    ]
-    in
-    Strand.reverse logic
+    Model "" (Single "A")
 
 
 update : Msg -> Model -> Model
-update msg model =
+update msg ({ gate, labelToAdd } as model) =
     case msg of
         Delete path ->
-            case Strand.Pathed.delete (Debug.log "path" path) model of
+            case Strand.Pathed.delete (Debug.log "path" path) gate of
                 Just newmodel ->
-                    newmodel
+                    { model | gate = newmodel }
 
                 Nothing ->
                     model
 
         AddParallel path ->
-            Strand.Pathed.insertParallel path "K" model
+            if String.length labelToAdd > 0 then
+                { model | gate = Strand.Pathed.insertParallel path labelToAdd gate, labelToAdd = "" }
+
+            else
+                model
 
         AddSeries path ->
-            Strand.Pathed.insertSeries path "L" model
+            if String.length labelToAdd > 0 then
+                { model | gate = Strand.Pathed.insertSeries path labelToAdd gate, labelToAdd = "" }
+
+            else
+                model
+
+        ChangeLabel newLabel ->
+            { model | labelToAdd = String.filter Char.isAlphaNum newLabel }
 
 
 view : Model -> Element Msg
-view model =
+view ({ gate, labelToAdd } as model) =
     Element.column [ Element.centerX, Element.centerY ]
-        [ viewVdd
-        , viewStrand PMOS model
+        [ Element.Input.text []
+            { label = Element.Input.labelLeft [] Element.none
+            , onChange = ChangeLabel
+            , placeholder = Just <| Element.Input.placeholder [] (Element.text "A")
+            , text = labelToAdd
+            }
+        , viewVdd
+        , viewStrand PMOS (String.length labelToAdd > 0) gate
         , viewOutput "Y"
-        , viewStrand NMOS <| Strand.reverse model
+        , viewStrand NMOS (String.length labelToAdd > 0) (Strand.reverse gate)
         , viewGND
         ]
 
 
-viewStrand : TransistorKind -> Alignment Input -> Element Msg
-viewStrand tkind =
+viewStrand : TransistorKind -> Bool -> Alignment Input -> Element Msg
+viewStrand tkind canAdd =
     let
         ttext =
             case tkind of
@@ -99,32 +105,40 @@ viewStrand tkind =
                 column
                     [ centerX
                     , height fill
-                    , onRight <|
-                        Element.Input.button [ Element.centerY ]
-                            { label = Element.text "+"
-                            , onPress = Just (AddParallel (Strand.Pathed.right p))
-                            }
-                    , onLeft <|
-                        Element.Input.button [ Element.centerY ]
-                            { label = Element.text "+"
-                            , onPress = Just (AddParallel (Strand.Pathed.left p))
-                            }
+                    , Element.Font.color <| GateSchematic.RandomColor.fromString i
                     ]
                     [ filler
                     , Element.row
-                        [ Element.alignRight
-                        , width <| px 55
-                        , above <|
-                            Element.Input.button [ centerX ]
-                                { label = Element.text "+"
-                                , onPress = Just (AddSeries (Strand.Pathed.above p))
-                                }
-                        , below <|
-                            Element.Input.button [ centerX ]
-                                { label = Element.text "+"
-                                , onPress = Just (AddSeries (Strand.Pathed.below p))
-                                }
-                        ]
+                        ([ Element.alignRight
+                         , width <| px 55
+                         ]
+                            ++ (if canAdd then
+                                    [ onRight <|
+                                        Element.Input.button [ Element.centerY ]
+                                            { label = Element.text "+"
+                                            , onPress = Just (AddParallel (Strand.Pathed.right p))
+                                            }
+                                    , onLeft <|
+                                        Element.Input.button [ Element.centerY ]
+                                            { label = Element.text "+"
+                                            , onPress = Just (AddParallel (Strand.Pathed.left p))
+                                            }
+                                    , above <|
+                                        Element.Input.button [ centerX ]
+                                            { label = Element.text "+"
+                                            , onPress = Just (AddSeries (Strand.Pathed.above p))
+                                            }
+                                    , below <|
+                                        Element.Input.button [ centerX ]
+                                            { label = Element.text "+"
+                                            , onPress = Just (AddSeries (Strand.Pathed.below p))
+                                            }
+                                    ]
+
+                                else
+                                    []
+                               )
+                        )
                         [ Element.el
                             [ onLeft <| Element.text <| String.append i ttext
                             , Element.Events.onClick (Delete p)
