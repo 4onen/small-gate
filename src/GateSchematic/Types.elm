@@ -7,7 +7,8 @@ import Strand.Pathed exposing (Path)
 type alias Model =
     { labelToAdd : String
     , gate : Alignment Input
-    , numInputsToShow : Maybe Int
+    , showNumLogicInputs : Maybe Int
+    , showDelays : Bool
     }
 
 
@@ -18,6 +19,7 @@ type Msg
     | AddSeries Path
     | ToggleLogic
     | ChangeLogicInputs Int
+    | ToggleDelays
 
 
 type alias Width =
@@ -25,7 +27,7 @@ type alias Width =
 
 
 type alias Input =
-    ( String, Width )
+    ( String, ( Width, Width ) )
 
 
 type TransistorKind

@@ -1,5 +1,6 @@
 module GateSchematic.Logic exposing (..)
 
+import List.Extra
 import Set exposing (Set)
 import Strand exposing (Alignment(..))
 
@@ -34,3 +35,21 @@ simulate activeInputs =
         , fray = List.any identity
         }
         >> Basics.not
+
+
+{-| Retrieve the minimum sets of inputs that must be off to activate the PMOS side of a gate.
+
+Unions of these sets should also produce active sets.
+
+    activeSets (Parallel (Fray [ Right "A", Right "B" ])) == [ Set.fromList [ "A" ], Set.fromList [ "B" ] ]
+
+Note that `Set.fromList ["A","B"]` was not included, as that is not a minimum set of active inputs to trigger the output rising to high.
+
+-}
+activeSets : Alignment String -> List (Set String)
+activeSets =
+    Strand.fold
+        { single = Set.singleton >> List.singleton
+        , strand = List.Extra.cartesianProduct >> List.map (List.foldl Set.union Set.empty)
+        , fray = List.concat
+        }
