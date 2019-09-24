@@ -29,11 +29,11 @@ init =
 
 
 update : Msg -> Model -> Model
-update msg ({ gate, label } as model) =
+update msg model =
     case msg of
         Select path ->
             if model.clickTrash then
-                Strand.Pathed.delete path gate
+                Strand.Pathed.delete path model.gate
                     |> Maybe.map
                         (\newgate ->
                             { model | gate = newgate }
@@ -44,7 +44,7 @@ update msg ({ gate, label } as model) =
                 { model | label = Right path }
 
         AddParallel path ->
-            case label of
+            case model.label of
                 Left "" ->
                     model
 
@@ -52,10 +52,10 @@ update msg ({ gate, label } as model) =
                     model
 
                 Left text ->
-                    { model | gate = Strand.Pathed.insertParallel path ( text, ( 1, 1 ) ) gate, label = Left "" }
+                    { model | gate = Strand.Pathed.insertParallel path ( text, ( 1, 2 ) ) model.gate, label = Left "" }
 
         AddSeries path ->
-            case label of
+            case model.label of
                 Left "" ->
                     model
 
@@ -63,7 +63,7 @@ update msg ({ gate, label } as model) =
                     model
 
                 Left text ->
-                    { model | gate = Strand.Pathed.insertSeries path ( text, ( 1, 1 ) ) gate, label = Left "" }
+                    { model | gate = Strand.Pathed.insertSeries path ( text, ( 1, 2 ) ) model.gate, label = Left "" }
 
         ChangeLabel newLabel ->
             Either.fold
@@ -79,21 +79,14 @@ update msg ({ gate, label } as model) =
                 | showNumLogicInputs =
                     case model.showNumLogicInputs of
                         Nothing ->
-                            Just 2
+                            Just 6
 
                         Just _ ->
                             Nothing
             }
 
         ChangeLogicInputs i ->
-            { model
-                | showNumLogicInputs =
-                    if i == 0 || model.showNumLogicInputs == Nothing then
-                        Nothing
-
-                    else
-                        Just i
-            }
+            { model | showNumLogicInputs = Just i }
 
         ToggleDelays ->
             { model | showDelays = not model.showDelays }
