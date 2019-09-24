@@ -4,11 +4,11 @@ import Browser
 import Either exposing (Either(..))
 import Element exposing (..)
 import Element.Input
+import GateSchematic.Delay
 import GateSchematic.Logic
 import GateSchematic.Logic.Render
 import GateSchematic.RandomColor
 import GateSchematic.Render
-import GateSchematic.RiseFall
 import GateSchematic.Types exposing (..)
 import Set exposing (Set)
 import Strand exposing (Alignment(..))
@@ -130,7 +130,7 @@ view ({ gate, label, showNumLogicInputs, showDelays } as model) =
                 (::) (Element.text "Rise times:") <|
                     List.map (Element.text << viewDelay) <|
                         Tuple.first <|
-                            GateSchematic.RiseFall.computeRiseFall gate 12.0
+                            GateSchematic.Delay.computeRiseFall gate 12.0
 
           else
             Element.none

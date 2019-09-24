@@ -1,4 +1,4 @@
-module GateSchematic.RiseFall exposing (..)
+module GateSchematic.Delay exposing (..)
 
 import GateSchematic.Logic
 import GateSchematic.Types
@@ -92,65 +92,14 @@ computeRise pmos nmos outputCapacitance =
                                     Nothing
                             }
                         |> Maybe.withDefault wire
+
+                parasiticDelay =
+                    pmosSide.delay 0
+
+                effortDelay =
+                    pmosSide.resistance * outputCapacitance
             in
-            ( active, (pmosSide.resistance * outputCapacitance) + pmosSide.delay 0 )
+            ( active, parasiticDelay + effortDelay )
          --TODO: Add NMOS parasitics
         )
         lactives
-
-
-computeR : Alignment ( String, Float ) -> List ( Set String, Float )
-computeR pmos =
-    let
-        activeSets =
-            Strand.fold
-                { single = Tuple.first >> Set.singleton >> List.singleton
-                , strand = List.Extra.cartesianProduct >> List.map (List.foldl Set.union Set.empty)
-                , fray = List.concat
-                }
-                pmos
-    in
-    List.map
-        (\active ->
-            Strand.fold
-                { single =
-                    \( name, width ) ->
-                        if Set.member name active then
-                            Just (toFloat 2 * width)
-
-                        else
-                            Nothing
-                , strand =
-                    List.foldl
-                        (\a b ->
-                            case ( a, b ) of
-                                ( Just aval, Just bval ) ->
-                                    Just <| aval + bval
-
-                                _ ->
-                                    Nothing
-                        )
-                        (Just 0)
-                , fray =
-                    List.foldl
-                        (\a b ->
-                            case ( a, b ) of
-                                ( Just aval, Just bval ) ->
-                                    Just <| 1 / (1 / aval + 1 / bval)
-
-                                ( Just aval, _ ) ->
-                                    a
-
-                                ( _, Just bval ) ->
-                                    b
-
-                                ( Nothing, Nothing ) ->
-                                    Nothing
-                        )
-                        Nothing
-                }
-                pmos
-                |> Maybe.withDefault 0
-                |> Tuple.pair active
-        )
-        activeSets
