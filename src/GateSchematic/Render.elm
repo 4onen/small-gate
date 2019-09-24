@@ -1,5 +1,6 @@
 module GateSchematic.Render exposing (view)
 
+import Either
 import Element exposing (..)
 import Element.Border
 import Element.Events
@@ -12,18 +13,37 @@ import Strand.Pathed
 
 
 view : Model -> Element Msg
-view ({ gate, labelToAdd } as model) =
+view ({ gate, label } as model) =
+    let
+        isNewLabel =
+            Either.fold ((<) 0 << String.length) (always False) label
+
+        labelText =
+            Either.fold identity (\labelPath -> Strand.Pathed.getAt labelPath gate |> Maybe.map Tuple.first |> Maybe.withDefault "") label
+    in
     column [ centerX, alignTop ]
-        [ Element.Input.text []
-            { label = Element.Input.labelLeft [] Element.none
-            , onChange = ChangeLabel
-            , placeholder = Just <| Element.Input.placeholder [] (Element.text "A")
-            , text = labelToAdd
-            }
+        [ Element.row []
+            [ Element.Input.text []
+                { label = Element.Input.labelLeft [] Element.none
+                , onChange = ChangeLabel
+                , placeholder = Nothing
+                , text = labelText
+                }
+            , Element.Input.button []
+                { label =
+                    Element.text <|
+                        if not model.clickTrash then
+                            "✎"
+
+                        else
+                            "🗑️"
+                , onPress = Just ToggleClickTrash
+                }
+            ]
         , viewVdd
-        , viewStrand PMOS (String.length labelToAdd > 0) (Strand.reverse gate)
+        , viewStrand PMOS isNewLabel (Strand.reverse gate)
         , viewOutput "Y"
-        , viewStrand NMOS (String.length labelToAdd > 0) gate
+        , viewStrand NMOS isNewLabel gate
         , viewGND
         ]
 
@@ -89,7 +109,7 @@ viewStrand tkind canAdd =
                         )
                         [ Element.el
                             [ onLeft <| Element.text <| String.append i ttext
-                            , Element.Events.onClick (Delete p)
+                            , Element.Events.onClick (Select p)
                             , moveLeft 2
                             , alignRight
                             , height fill

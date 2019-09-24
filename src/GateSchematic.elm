@@ -25,36 +25,54 @@ main =
 
 init : Model
 init =
-    Model "" (Single ( "A", ( 1, 1 ) )) Nothing False
+    Model (Left "") (Single ( "A", ( 1, 1 ) )) False Nothing False
 
 
 update : Msg -> Model -> Model
-update msg ({ gate, labelToAdd } as model) =
+update msg ({ gate, label } as model) =
     case msg of
-        Delete path ->
-            case Strand.Pathed.delete path gate of
-                Just newmodel ->
-                    { model | gate = newmodel }
+        Select path ->
+            if model.clickTrash then
+                Strand.Pathed.delete path gate
+                    |> Maybe.map
+                        (\newgate ->
+                            { model | gate = newgate }
+                        )
+                    |> Maybe.withDefault model
 
-                Nothing ->
-                    model
+            else
+                { model | label = Right path }
 
         AddParallel path ->
-            if String.length labelToAdd > 0 then
-                { model | gate = Strand.Pathed.insertParallel path ( labelToAdd, ( 1, 1 ) ) gate, labelToAdd = "" }
+            case label of
+                Left "" ->
+                    model
 
-            else
-                model
+                Right _ ->
+                    model
+
+                Left text ->
+                    { model | gate = Strand.Pathed.insertParallel path ( text, ( 1, 1 ) ) gate, label = Left "" }
 
         AddSeries path ->
-            if String.length labelToAdd > 0 then
-                { model | gate = Strand.Pathed.insertSeries path ( labelToAdd, ( 1, 1 ) ) gate, labelToAdd = "" }
+            case label of
+                Left "" ->
+                    model
 
-            else
-                model
+                Right _ ->
+                    model
+
+                Left text ->
+                    { model | gate = Strand.Pathed.insertSeries path ( text, ( 1, 1 ) ) gate, label = Left "" }
 
         ChangeLabel newLabel ->
-            { model | labelToAdd = String.filter Char.isAlphaNum newLabel }
+            Either.fold
+                (always { model | label = Left <| String.filter Char.isAlphaNum newLabel })
+                (\labelPath -> { model | gate = Strand.Pathed.updateAt labelPath (Tuple.mapFirst <| always <| String.filter Char.isAlphaNum newLabel) model.gate })
+                model.label
+
+        ToggleClickTrash ->
+            { model | clickTrash = not model.clickTrash, label = Either.fold Left (always <| Left "") model.label }
 
         ToggleLogic ->
             { model
@@ -82,7 +100,7 @@ update msg ({ gate, labelToAdd } as model) =
 
 
 view : Model -> Element Msg
-view ({ gate, labelToAdd, showNumLogicInputs, showDelays } as model) =
+view ({ gate, label, showNumLogicInputs, showDelays } as model) =
     Element.wrappedRow
         [ Element.centerX, Element.centerY, spacing 20 ]
         [ GateSchematic.Render.view model

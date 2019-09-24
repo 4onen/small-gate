@@ -1,4 +1,4 @@
-module Strand.Pathed exposing (Path, above, below, delete, empty, fold, insertParallel, insertSeries, left, map, right)
+module Strand.Pathed exposing (Path, above, below, delete, empty, fold, getAt, insertParallel, insertSeries, left, map, right, updateAt)
 
 import Either exposing (Either(..))
 import List.Extra
@@ -332,3 +332,113 @@ pathedFoldFrayHelper p functions (Fray fray) =
                     (functions.single (List.reverse <| idx :: p))
             )
         |> functions.fray p
+
+
+{-| Updates the value at `path` in the given Strand or Fray using the function f.
+
+If `path` does not path to an exact `Single`, returns `alignment` unaltered.
+
+-}
+updateAt : Path -> (a -> a) -> Alignment a -> Alignment a
+updateAt path f alignment =
+    case alignment of
+        Single a ->
+            if path == [] then
+                Single <| f a
+
+            else
+                Single a
+
+        Series strand ->
+            strand
+                |> updateAtInStrand path f
+                |> Series
+
+        Parallel fray ->
+            fray
+                |> updateAtInFray path f
+                |> Parallel
+
+
+updateAtInStrand : Path -> (a -> a) -> Strand a -> Strand a
+updateAtInStrand path f (Strand strand) =
+    Strand <|
+        case path of
+            [] ->
+                strand
+
+            idx :: [] ->
+                List.Extra.updateAt idx (Either.mapRight f) strand
+
+            idx :: rest ->
+                List.Extra.updateAt idx (Either.mapLeft (updateAtInFray path f)) strand
+
+
+updateAtInFray : Path -> (a -> a) -> Fray a -> Fray a
+updateAtInFray path f (Fray fray) =
+    Fray <|
+        case path of
+            [] ->
+                fray
+
+            idx :: [] ->
+                List.Extra.updateAt idx (Either.mapRight f) fray
+
+            idx :: rest ->
+                List.Extra.updateAt idx (Either.mapLeft (updateAtInStrand path f)) fray
+
+
+{-| Retrieves the value at `path` in the given Strand.
+
+Fails if path does not lead to an exact `Single`
+
+-}
+getAt : Path -> Alignment a -> Maybe a
+getAt path alignment =
+    case alignment of
+        Single a ->
+            if path == [] then
+                Just a
+
+            else
+                Nothing
+
+        Series strand ->
+            getAtInStrand path strand
+
+        Parallel fray ->
+            getAtInFray path fray
+
+
+getAtInStrand : Path -> Strand a -> Maybe a
+getAtInStrand path (Strand strand) =
+    case path of
+        [] ->
+            Nothing
+
+        idx :: [] ->
+            strand
+                |> List.Extra.getAt idx
+                |> Maybe.andThen (Either.fold (always Nothing) Just)
+
+        idx :: rest ->
+            strand
+                |> List.Extra.getAt idx
+                |> Maybe.andThen (Either.fold (getAtInFray rest) (always Nothing))
+
+
+getAtInFray : Path -> Fray a -> Maybe a
+getAtInFray path (Fray fray) =
+    case path of
+        [] ->
+            Nothing
+
+        idx :: [] ->
+            fray
+                |> List.Extra.getAt idx
+                |> Maybe.andThen (Either.fold (always Nothing) Just)
+
+        idx :: rest ->
+            fray
+                |> List.Extra.getAt idx
+                |> Maybe.andThen (Either.fold (getAtInStrand rest) (always Nothing))
