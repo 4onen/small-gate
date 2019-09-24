@@ -22,11 +22,14 @@ view numInputs gate =
             min numInputs (Set.size inputs)
     in
     Element.column [ alignTop, spacing 10 ]
-        [ Element.Input.radioRow [ spacing 20 ]
-            { label = Element.Input.labelAbove [] <| text "Max inputs to render:"
-            , onChange = ChangeLogicInputs
-            , options = List.range 0 8 |> List.map (\i -> Element.Input.option i (viewOptionLabel i))
-            , selected = Just numInputs
+        [ Element.Input.slider []
+            { label = Element.Input.labelBelow [] <| text <| "Max inputs to render: " ++ String.fromInt numInputs
+            , max = 9
+            , min = 0
+            , onChange = round >> ChangeLogicInputs
+            , step = Just 1
+            , thumb = Element.Input.defaultThumb
+            , value = toFloat numInputs
             }
         , if numInputs <= 0 then
             Element.none
