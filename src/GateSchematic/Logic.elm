@@ -1,8 +1,31 @@
 module GateSchematic.Logic exposing (..)
 
+import Bitwise
 import List.Extra
 import Set exposing (Set)
 import Strand exposing (Alignment(..))
+
+
+cleanLabel : String -> String
+cleanLabel str =
+    let
+        valid =
+            String.filter Char.isAlphaNum str
+
+        invert =
+            if
+                str
+                    |> String.filter ((==) '\'')
+                    |> String.length
+                    |> Bitwise.and 1
+                    |> (==) 1
+            then
+                "'"
+
+            else
+                ""
+    in
+    valid ++ invert
 
 
 toText : Alignment String -> String
@@ -21,16 +44,26 @@ toText =
 retrieveInputs : Alignment String -> Set String
 retrieveInputs =
     Strand.fold
-        { single = Set.singleton
+        { single = String.filter ((/=) '\'') >> Set.singleton
         , strand = List.foldl Set.union Set.empty
         , fray = List.foldl Set.union Set.empty
         }
 
 
-simulate : Set comparable -> Alignment comparable -> Bool
+simulate : Set String -> Alignment String -> Bool
 simulate activeInputs =
     Strand.fold
-        { single = \i -> Set.member i activeInputs
+        { single =
+            \i ->
+                let
+                    inverted =
+                        i |> String.filter ((==) '\'') |> String.length |> Bitwise.and 1 |> (==) 1
+
+                    input =
+                        i |> String.filter ((/=) '\'')
+                in
+                Set.member input activeInputs
+                    |> xor inverted
         , strand = List.all identity
         , fray = List.any identity
         }

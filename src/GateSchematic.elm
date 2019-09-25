@@ -67,8 +67,8 @@ update msg model =
 
         ChangeLabel newLabel ->
             Either.fold
-                (always { model | label = Left <| String.filter Char.isAlphaNum newLabel })
-                (\labelPath -> { model | gate = Strand.Pathed.updateAt labelPath (Tuple.mapFirst <| always <| String.filter Char.isAlphaNum newLabel) model.gate })
+                (always { model | label = Left <| GateSchematic.Logic.cleanLabel newLabel })
+                (\labelPath -> { model | gate = Strand.Pathed.updateAt labelPath (Tuple.mapFirst <| always <| GateSchematic.Logic.cleanLabel newLabel) model.gate })
                 model.label
 
         ToggleClickTrash ->
@@ -134,9 +134,17 @@ viewDelay : ( Set String, Float ) -> String
 viewDelay ( vals, delay ) =
     (vals
         |> Set.toList
-        |> List.intersperse "', "
+        |> List.map
+            (\s ->
+                if String.endsWith "'" s then
+                    String.dropRight 1 s
+
+                else
+                    s ++ "'"
+            )
+        |> List.intersperse ", "
     )
-        ++ [ "': "
+        ++ [ ": "
            , delay |> String.fromFloat
            ]
         |> String.concat

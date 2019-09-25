@@ -69,12 +69,17 @@ view numInputs gate =
                                     )
                             )
                                 ++ [ { header =
-                                        el
-                                            [ Element.Font.center
-                                            , Element.Border.widthEach
-                                                { top = 1, bottom = 0, left = 0, right = 0 }
+                                        row []
+                                            [ text "Y="
+                                            , el
+                                                [ Element.Font.center
+                                                , borderTop 2
+                                                ]
+                                                (el
+                                                    [ Element.Border.color <| Element.rgb 1.0 1.0 1.0, borderTop 2 ]
+                                                    (viewEquation gate)
+                                                )
                                             ]
-                                            (Element.text (GateSchematic.Logic.toText gate))
                                      , width = shrink
                                      , view =
                                         \j ->
@@ -99,12 +104,42 @@ view numInputs gate =
         ]
 
 
-viewOptionLabel : Int -> Element Msg
-viewOptionLabel i =
-    Element.text <|
-        case i of
-            0 ->
-                "Off"
+viewEquation : Alignment String -> Element msg
+viewEquation =
+    Strand.fold
+        { single =
+            \e ->
+                let
+                    inverted =
+                        if String.endsWith "'" e then
+                            1
 
-            _ ->
-                String.fromInt i
+                        else
+                            0
+
+                    input =
+                        String.dropRight
+                            inverted
+                            e
+                in
+                Element.el
+                    [ borderTop <| 2 * inverted ]
+                    (Element.text input)
+        , strand =
+            \le ->
+                ([ text "(" ] ++ List.intersperse (text "*") le ++ [ text ")" ])
+                    |> Element.row []
+        , fray =
+            \le ->
+                ([ text "(" ] ++ List.intersperse (text "+") le ++ [ text ")" ])
+                    |> Element.row []
+        }
+
+
+borderTop thickness =
+    Element.Border.widthEach
+        { bottom = 0
+        , left = 0
+        , right = 0
+        , top = thickness
+        }
