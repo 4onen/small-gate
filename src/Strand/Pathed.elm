@@ -371,7 +371,7 @@ updateAtInStrand path f (Strand strand) =
                 List.Extra.updateAt idx (Either.mapRight f) strand
 
             idx :: rest ->
-                List.Extra.updateAt idx (Either.mapLeft (updateAtInFray path f)) strand
+                List.Extra.updateAt idx (Either.mapLeft (updateAtInFray rest f)) strand
 
 
 updateAtInFray : Path -> (a -> a) -> Fray a -> Fray a
@@ -385,7 +385,7 @@ updateAtInFray path f (Fray fray) =
                 List.Extra.updateAt idx (Either.mapRight f) fray
 
             idx :: rest ->
-                List.Extra.updateAt idx (Either.mapLeft (updateAtInStrand path f)) fray
+                List.Extra.updateAt idx (Either.mapLeft (updateAtInStrand rest f)) fray
 
 
 {-| Retrieves the value at `path` in the given Strand.
