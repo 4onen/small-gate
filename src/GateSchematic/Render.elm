@@ -7,7 +7,7 @@ import Element.Events
 import Element.Font
 import Element.Input
 import GateSchematic.RandomColor
-import GateSchematic.Types exposing (Input, Model, Msg(..), TransistorKind(..))
+import GateSchematic.Types exposing (CMOS, Model, Msg(..), Transistor, TransistorKind(..))
 import Strand exposing (Alignment)
 import Strand.Pathed
 
@@ -48,7 +48,7 @@ view ({ gate, label } as model) =
         ]
 
 
-viewStrand : TransistorKind -> Bool -> Alignment Input -> Element Msg
+viewStrand : TransistorKind -> Bool -> CMOS -> Element Msg
 viewStrand tkind canAdd =
     let
         ttext =

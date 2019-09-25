@@ -7,7 +7,7 @@ import Strand.Pathed exposing (Path)
 
 type alias Model =
     { label : Either String Path
-    , gate : Alignment Input
+    , gate : CMOS
     , clickTrash : Bool
     , showNumLogicInputs : Maybe Int
     , showDelays : Bool
@@ -26,11 +26,15 @@ type Msg
 
 
 type alias Width =
-    Int
+    Float
 
 
-type alias Input =
+type alias Transistor =
     ( String, ( Width, Width ) )
+
+
+type alias CMOS =
+    Alignment Transistor
 
 
 type TransistorKind

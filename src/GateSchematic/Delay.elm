@@ -1,20 +1,20 @@
 module GateSchematic.Delay exposing (..)
 
 import GateSchematic.Logic
-import GateSchematic.Types
+import GateSchematic.Types exposing (Transistor, TransistorKind(..))
 import List.Extra
 import Set exposing (Set)
 import Strand exposing (Alignment(..))
 
 
-computeRiseFall : Alignment ( String, ( Int, Int ) ) -> Float -> ( List ( Set String, Float ), List ( Set String, Float ) )
+computeRiseFall : Alignment Transistor -> Float -> ( List ( Set String, Float ), List ( Set String, Float ) )
 computeRiseFall gate outputCapacitance =
     let
         nmos =
-            Strand.map (Tuple.mapSecond (Tuple.second >> toFloat)) gate
+            Strand.map (Tuple.mapSecond Tuple.second) gate
 
         pmos =
-            Strand.map (Tuple.mapSecond (Tuple.first >> toFloat)) (Strand.reverse gate)
+            Strand.map (Tuple.mapSecond Tuple.first) (Strand.reverse gate)
 
         rise =
             computeRise pmos nmos outputCapacitance
@@ -28,11 +28,20 @@ computeRise pmos nmos outputCapacitance =
         lactives =
             GateSchematic.Logic.activeSets (Strand.map Tuple.first pmos)
 
-        widthFactor =
-            2.0
+        transistor transistorKind width =
+            let
+                resistanceFactor =
+                    case transistorKind of
+                        PMOS ->
+                            2.0
 
-        transistor width =
-            { resistance = widthFactor / width, delay = \beforeResistance -> beforeResistance * width + (beforeResistance + width) * width }
+                        NMOS ->
+                            1.0
+
+                resistance =
+                    resistanceFactor / width
+            in
+            { resistance = resistance, delay = \beforeResistance -> beforeResistance * width + (beforeResistance + resistance) * width }
 
         wire =
             { resistance = 0, delay = always 0 }
@@ -46,7 +55,7 @@ computeRise pmos nmos outputCapacitance =
                             { single =
                                 \( name, width ) ->
                                     if Set.member name active then
-                                        Just <| transistor width
+                                        Just <| transistor PMOS width
 
                                     else
                                         Nothing

@@ -1,11 +1,11 @@
 module Capacitance exposing (input)
 
 import Dict exposing (Dict)
-import GateSchematic.Types exposing (Input, Width)
+import GateSchematic.Types exposing (Transistor, Width)
 import Strand exposing (Alignment(..))
 
 
-input : Alignment Input -> Dict String Width
+input : Alignment Transistor -> Dict String Width
 input =
     let
         sum_dicts =
