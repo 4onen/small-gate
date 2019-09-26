@@ -25,7 +25,7 @@ main =
 
 init : Model
 init =
-    Model (Left "") (Single ( "A", ( 1, 1 ) )) False Nothing False
+    Model (Left "") (Single ( "A", ( 2, 1 ) )) False Nothing False
 
 
 update : Msg -> Model -> Model
@@ -52,7 +52,7 @@ update msg model =
                     model
 
                 Left text ->
-                    { model | gate = Strand.Pathed.insertParallel path ( text, ( 1, 2 ) ) model.gate, label = Left "" }
+                    { model | gate = Strand.Pathed.insertParallel path ( text, ( 2, 1 ) ) model.gate, label = Left "" }
 
         AddSeries path ->
             case model.label of
@@ -63,7 +63,7 @@ update msg model =
                     model
 
                 Left text ->
-                    { model | gate = Strand.Pathed.insertSeries path ( text, ( 1, 2 ) ) model.gate, label = Left "" }
+                    { model | gate = Strand.Pathed.insertSeries path ( text, ( 2, 1 ) ) model.gate, label = Left "" }
 
         ChangeLabel newLabel ->
             Either.fold
