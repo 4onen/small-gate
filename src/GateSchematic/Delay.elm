@@ -41,10 +41,22 @@ computeRise pmos nmos outputCapacitance =
                 resistance =
                     resistanceFactor / width
             in
-            { resistance = resistance, delay = \beforeResistance -> beforeResistance * width + (beforeResistance + resistance) * width }
+            { resistance = resistance
+            , delay =
+                \beforeResistance otherPathsAfter ->
+                    case otherPathsAfter of
+                        Just otherPath ->
+                            beforeResistance * width + otherPath * width
+
+                        Nothing ->
+                            beforeResistance * width + (beforeResistance + resistance) * width
+            }
 
         wire =
-            { resistance = 0, delay = always 0 }
+            { resistance = 0, delay = always always 0 }
+
+        open =
+            { resistance = 1 / 0, delay = always always (1 / 0) }
     in
     List.map
         (\active ->
@@ -61,18 +73,14 @@ computeRise pmos nmos outputCapacitance =
                                         Nothing
                             , strand =
                                 List.foldl
-                                    (\mnew mtotal ->
-                                        case ( mnew, mtotal ) of
-                                            ( Just new, Just total ) ->
-                                                Just
-                                                    { resistance = total.resistance + new.resistance
-                                                    , delay =
-                                                        \beforeResistance ->
-                                                            total.delay beforeResistance + new.delay (total.resistance + beforeResistance)
-                                                    }
-
-                                            _ ->
-                                                Nothing
+                                    (Maybe.map2
+                                        (\new total ->
+                                            { resistance = total.resistance + new.resistance
+                                            , delay =
+                                                \beforeResistance otherPathsAfter ->
+                                                    total.delay beforeResistance Nothing + new.delay (total.resistance + beforeResistance) otherPathsAfter
+                                            }
+                                        )
                                     )
                                     (Just wire)
                             , fray =
@@ -90,25 +98,44 @@ computeRise pmos nmos outputCapacitance =
 
                                             ( Just new, Just total ) ->
                                                 Just
-                                                    { resistance = 1.0 / (1.0 / new.resistance + 1.0 / total.resistance)
+                                                    { resistance = parallel new.resistance total.resistance
                                                     , delay =
-                                                        \beforeResistance ->
+                                                        \beforeResistance _ ->
                                                             Basics.min
-                                                                (new.delay beforeResistance)
-                                                                (total.delay beforeResistance)
+                                                                (new.delay beforeResistance Nothing)
+                                                                (total.delay beforeResistance Nothing)
                                                     }
                                     )
                                     Nothing
+                                    >> Maybe.map
+                                        (\({ resistance, delay } as paths) ->
+                                            { paths
+                                                | delay =
+                                                    \beforeResistance _ ->
+                                                        paths.delay beforeResistance (Just <| beforeResistance + paths.resistance)
+                                            }
+                                        )
                             }
-                        |> Maybe.withDefault wire
+                        |> Maybe.withDefault open
 
                 parasiticDelay =
-                    pmosSide.delay 0
+                    pmosSide.delay 0 Nothing
 
                 effortDelay =
                     pmosSide.resistance * outputCapacitance
             in
             ( active, parasiticDelay + effortDelay )
-         --TODO: Add NMOS parasitics
         )
         lactives
+
+
+{-| The operation for combining resistors in parallel
+
+Sometimes called the "reciprocal formula"
+
+See: <https://en.wikipedia.org/wiki/Parallel_(operator)>
+
+-}
+parallel : Float -> Float -> Float
+parallel a b =
+    a * b / (a + b)
