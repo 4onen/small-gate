@@ -22,10 +22,9 @@ computeRiseFall gate outputCapacitance =
     ( rise, rise )
 
 
-type alias Path =
+type alias CurrentPath =
     { currentCarrying : Maybe Float
-    , delay : Float -> Float
-    , outputCapacitance : Float
+    , delay : Maybe Float -> Maybe Float -> Float
     }
 
 
@@ -45,25 +44,58 @@ computeRise pmos nmos outputCapacitance =
                         NMOS ->
                             1.0
 
-                resistance =
+                currentCarrying =
                     if active then
                         Just <| resistanceFactor / width
 
                     else
                         Nothing
+
+                delay mbefore mafter =
+                    case ( mbefore, mafter ) of
+                        ( Nothing, Nothing ) ->
+                            0
+
+                        ( Just rbefore, Nothing ) ->
+                            case currentCarrying of
+                                Just r ->
+                                    (rbefore * width) + ((rbefore + r) * width)
+
+                                Nothing ->
+                                    rbefore * width
+
+                        ( Nothing, Just rafter ) ->
+                            case currentCarrying of
+                                Just r ->
+                                    ((rafter + r) * width) + (rafter * width)
+
+                                Nothing ->
+                                    rafter * width
+
+                        ( Just rbefore, Just rafter ) ->
+                            case currentCarrying of
+                                Just r ->
+                                    (+)
+                                        (width * parallel rbefore (rafter + r))
+                                        (width * parallel (rbefore + r) rafter)
+
+                                Nothing ->
+                                    (+)
+                                        (width * rbefore)
+                                        (width * rafter)
             in
-            Path resistance (\beforeResistance -> beforeResistance * width) width
+            CurrentPath currentCarrying delay
 
         wire =
-            Path (Just 0) (always 0) 0
+            CurrentPath (Just 0) (always (always 0))
 
         open =
-            Path Nothing (always 0) 0
+            CurrentPath Nothing (always (always 0))
     in
     List.filterMap
         (\active ->
             let
-                pmosSide : Path
+                pmosSide : CurrentPath
                 pmosSide =
                     Strand.fold
                         { single =
@@ -72,66 +104,45 @@ computeRise pmos nmos outputCapacitance =
                         , strand =
                             List.foldl
                                 (\new total ->
-                                    case total.currentCarrying of
-                                        Nothing ->
-                                            Path Nothing total.delay new.outputCapacitance
-
-                                        Just currentResistance ->
-                                            Path
-                                                (Maybe.map ((+) currentResistance) new.currentCarrying)
-                                                (\beforeResistance ->
-                                                    (+)
-                                                        ((+) (total.delay beforeResistance) (total.outputCapacitance * (beforeResistance + currentResistance)))
-                                                        (new.delay <| beforeResistance + currentResistance)
-                                                )
-                                                new.outputCapacitance
+                                    CurrentPath
+                                        (Maybe.map2 (+) total.currentCarrying new.currentCarrying)
+                                        (\mbefore mafter ->
+                                            (+)
+                                                (total.delay mbefore (Maybe.map2 (+) new.currentCarrying mafter))
+                                                (new.delay (Maybe.map2 (+) total.currentCarrying mbefore) mafter)
+                                        )
                                 )
                                 wire
                         , fray =
-                            List.foldl
-                                (\new total ->
-                                    case total.currentCarrying of
-                                        Nothing ->
-                                            Path new.currentCarrying
-                                                (\beforeResistance ->
-                                                    (+)
-                                                        (total.delay beforeResistance)
-                                                        (new.delay beforeResistance)
-                                                )
-                                                (new.outputCapacitance + total.outputCapacitance)
-
-                                        Just currentResistance ->
-                                            let
-                                                newResistance =
-                                                    new.currentCarrying
-                                                        |> Maybe.map (parallel currentResistance)
-                                                        |> Maybe.withDefault currentResistance
-                                            in
-                                            Path
-                                                (Just newResistance)
-                                                (\before ->
-                                                    (+)
-                                                        (total.delay before)
-                                                        (new.delay before)
-                                                )
-                                                (total.outputCapacitance + new.outputCapacitance)
-                                )
-                                open
+                            \lp ->
+                                List.Extra.indexedFoldl
+                                    (\i new total ->
+                                        CurrentPath
+                                            (maybeParallel new.currentCarrying total.currentCarrying)
+                                            (let
+                                                otherPaths =
+                                                    lp
+                                                        |> List.Extra.removeAt i
+                                                        |> List.foldl (.currentCarrying >> maybeParallel) Nothing
+                                             in
+                                             \mbefore mafter ->
+                                                (+)
+                                                    (total.delay mbefore mafter)
+                                                    (new.delay mbefore (maybeParallel otherPaths mafter))
+                                            )
+                                    )
+                                    open
+                                    lp
                         }
                         pmos
-            in
-            pmosSide.currentCarrying
-                |> Maybe.map
-                    (\r ->
-                        let
-                            parasiticDelay =
-                                r * pmosSide.outputCapacitance + pmosSide.delay 0
 
-                            effortDelay =
-                                r * outputCapacitance
-                        in
-                        ( active, parasiticDelay + effortDelay )
-                    )
+                parasitic =
+                    pmosSide.delay (Just 0) Nothing
+
+                load =
+                    Maybe.map ((*) outputCapacitance) pmosSide.currentCarrying
+            in
+            Maybe.map ((+) parasitic >> Tuple.pair active) load
         )
         lactives
 
@@ -146,3 +157,19 @@ See: <https://en.wikipedia.org/wiki/Parallel_(operator)>
 parallel : Float -> Float -> Float
 parallel a b =
     a * b / (a + b)
+
+
+maybeParallel : Maybe Float -> Maybe Float -> Maybe Float
+maybeParallel ma mb =
+    case ( ma, mb ) of
+        ( Nothing, Nothing ) ->
+            Nothing
+
+        ( Just a, Nothing ) ->
+            Just a
+
+        ( Nothing, Just b ) ->
+            Just b
+
+        ( Just a, Just b ) ->
+            Just <| parallel a b
