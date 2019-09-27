@@ -19,7 +19,7 @@ input =
                 Dict.empty
     in
     Strand.fold
-        { single = \( name, ( nmos, pmos ) ) -> Dict.singleton name (nmos + pmos)
+        { single = \( name, ( pmos, nmos ) ) -> Dict.singleton name (pmos + nmos)
         , strand = sum_dicts
         , fray = sum_dicts
         }
