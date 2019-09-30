@@ -22,7 +22,7 @@ solve =
                         toFloat <| List.length l
 
                     multiplyWidth =
-                        Tuple.mapSecond (Tuple.mapBoth ((*) multiplier) identity)
+                        Tuple.mapSecond (Tuple.mapBoth identity ((*) multiplier))
                 in
                 l
                     |> List.concatMap
@@ -49,7 +49,7 @@ solve =
                         toFloat <| List.length l
 
                     multiplyWidth =
-                        Tuple.mapSecond (Tuple.mapBoth identity ((*) multiplier))
+                        Tuple.mapSecond (Tuple.mapBoth ((*) multiplier) identity)
                 in
                 l
                     |> List.concatMap
