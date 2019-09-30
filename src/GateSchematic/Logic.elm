@@ -44,7 +44,16 @@ toText =
 retrieveInputs : Alignment String -> Set String
 retrieveInputs =
     Strand.fold
-        { single = String.filter ((/=) '\'') >> Set.singleton
+        { single =
+            String.filter ((/=) '\'')
+                >> (\s ->
+                        if s /= "" then
+                            s
+
+                        else
+                            "_"
+                   )
+                >> Set.singleton
         , strand = List.foldl Set.union Set.empty
         , fray = List.foldl Set.union Set.empty
         }
@@ -61,6 +70,13 @@ simulate activeInputs =
 
                     input =
                         i |> String.filter ((/=) '\'')
+                            |> (\s ->
+                                    if s /= "" then
+                                        s
+
+                                    else
+                                        "_"
+                               )
                 in
                 Set.member input activeInputs
                     |> xor inverted

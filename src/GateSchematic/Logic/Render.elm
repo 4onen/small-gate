@@ -118,9 +118,16 @@ viewEquation =
                             0
 
                     input =
-                        String.dropRight
-                            inverted
-                            e
+                        e
+                            |> String.dropRight
+                                inverted
+                            |> (\s ->
+                                    if s /= "" then
+                                        s
+
+                                    else
+                                        "_"
+                               )
                 in
                 Element.el
                     [ borderTop <| 2 * inverted ]
