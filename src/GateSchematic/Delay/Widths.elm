@@ -1,4 +1,4 @@
-module Widths exposing (solve)
+module GateSchematic.Delay.Widths exposing (solve)
 
 import Either exposing (Either(..))
 import GateSchematic.Types exposing (Transistor)

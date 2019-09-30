@@ -5,6 +5,7 @@ import Either exposing (Either(..))
 import Element exposing (..)
 import Element.Input
 import GateSchematic.Delay
+import GateSchematic.Delay.Widths
 import GateSchematic.Logic
 import GateSchematic.Logic.Render
 import GateSchematic.RandomColor
@@ -91,6 +92,9 @@ update msg model =
         ToggleDelays ->
             { model | showDelays = not model.showDelays }
 
+        SolveDelays ->
+            { model | gate = GateSchematic.Delay.Widths.solve (Strand.map Tuple.first model.gate) }
+
 
 view : Model -> Element Msg
 view ({ gate, label, showNumLogicInputs, showDelays } as model) =
@@ -120,10 +124,11 @@ view ({ gate, label, showNumLogicInputs, showDelays } as model) =
             }
         , if showDelays then
             Element.column [ alignTop ] <|
-                (::) (Element.text "Rise times:") <|
-                    List.map (Element.text << viewDelay) <|
-                        Tuple.first <|
-                            GateSchematic.Delay.computeRiseFall gate 12.0
+                (::) (Element.Input.button [] { onPress = Just SolveDelays, label = Element.text "MakeEqual" }) <|
+                    (::) (Element.text "Rise times:") <|
+                        List.map (Element.text << viewDelay) <|
+                            Tuple.first <|
+                                GateSchematic.Delay.computeRiseFall gate 12.0
 
           else
             Element.none

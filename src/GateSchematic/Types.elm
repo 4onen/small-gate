@@ -23,6 +23,7 @@ type Msg
     | ToggleLogic
     | ChangeLogicInputs Int
     | ToggleDelays
+    | SolveDelays
 
 
 type alias Width =
