@@ -41,23 +41,23 @@ view ({ gate, label } as model) =
                 }
             ]
         , viewVdd
-        , viewStrand PMOS isNewLabel (Strand.reverse gate)
+        , viewGateSide PMOS isNewLabel (Strand.reverse gate)
         , viewOutput "Y"
-        , viewStrand NMOS isNewLabel gate
+        , viewGateSide NMOS isNewLabel gate
         , viewGND
         ]
 
 
-viewStrand : TransistorKind -> Bool -> CMOS -> Element Msg
-viewStrand tkind canAdd =
+viewGateSide : TransistorKind -> Bool -> CMOS -> Element Msg
+viewGateSide tkind canAdd =
     let
-        ttext =
+        ( ttext, deviceWidth ) =
             case tkind of
                 PMOS ->
-                    "-○"
+                    ( "-○", Tuple.second >> Tuple.first )
 
                 NMOS ->
-                    "-"
+                    ( "-", Tuple.second >> Tuple.second )
 
         filler =
             Element.el
@@ -69,7 +69,7 @@ viewStrand tkind canAdd =
     in
     Strand.Pathed.fold
         { single =
-            \p ( i, _ ) ->
+            \p (( i, _ ) as device) ->
                 column
                     [ centerX
                     , height fill
@@ -104,7 +104,11 @@ viewStrand tkind canAdd =
                                     ]
 
                                 else
-                                    []
+                                    [ onRight
+                                        (el [ Element.Font.size 12, centerY ]
+                                            (deviceWidth device |> String.fromFloat |> Element.text)
+                                        )
+                                    ]
                                )
                         )
                         [ Element.el
