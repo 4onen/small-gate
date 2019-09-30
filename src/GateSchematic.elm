@@ -5,6 +5,7 @@ import Either exposing (Either(..))
 import Element exposing (..)
 import Element.Input
 import GateSchematic.Delay
+import GateSchematic.Delay.Render
 import GateSchematic.Delay.Widths
 import GateSchematic.Logic
 import GateSchematic.Logic.Render
@@ -125,31 +126,8 @@ view ({ gate, label, showNumLogicInputs, showDelays } as model) =
         , if showDelays then
             Element.column [ alignTop ] <|
                 (::) (Element.Input.button [] { onPress = Just SolveDelays, label = Element.text "MakeEqual" }) <|
-                    (::) (Element.text "Rise times:") <|
-                        List.map (Element.text << viewDelay) <|
-                            Tuple.first <|
-                                GateSchematic.Delay.computeRiseFall gate 12.0
+                    GateSchematic.Delay.Render.view gate
 
           else
             Element.none
         ]
-
-
-viewDelay : ( Set String, Float ) -> String
-viewDelay ( vals, delay ) =
-    (vals
-        |> Set.toList
-        |> List.map
-            (\s ->
-                if String.endsWith "'" s then
-                    String.dropRight 1 s
-
-                else
-                    s ++ "'"
-            )
-        |> List.intersperse ", "
-    )
-        ++ [ ": "
-           , delay |> String.fromFloat
-           ]
-        |> String.concat
