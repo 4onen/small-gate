@@ -1,4 +1,4 @@
-module Capacitance exposing (input)
+module GateSchematic.Delay.Capacitance exposing (input)
 
 import Dict exposing (Dict)
 import GateSchematic.Types exposing (Transistor, Width)
