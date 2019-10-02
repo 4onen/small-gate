@@ -17,14 +17,6 @@ import Utils.Strand as Strand exposing (Alignment(..))
 import Utils.Strand.Pathed as PathedStrand exposing (Path)
 
 
-main =
-    Browser.sandbox
-        { init = init
-        , update = update
-        , view = Element.layout [] << view
-        }
-
-
 init : Model
 init =
     Model (Left "") (Single ( "A", ( 2, 1 ) )) False Nothing False

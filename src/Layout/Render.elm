@@ -54,7 +54,7 @@ view views model =
             , SvgClick.onUp DragUp
             , SA.preserveAspectRatio "xMidYMid meet"
             , HA.style "width" "calc(98vw - 200px)"
-            , HA.style "height" "calc(98vh - 50px)"
+            , HA.style "height" "calc(98vh - 150px)"
             , HA.style "border" "1px solid black"
             ]
             activeLayers
