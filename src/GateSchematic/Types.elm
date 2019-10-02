@@ -1,8 +1,8 @@
 module GateSchematic.Types exposing (..)
 
-import Either exposing (Either)
-import Strand exposing (Alignment)
-import Strand.Pathed exposing (Path)
+import Utils.Either exposing (Either)
+import Utils.Strand exposing (Alignment)
+import Utils.Strand.Pathed exposing (Path)
 
 
 type alias Model =

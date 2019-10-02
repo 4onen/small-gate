@@ -1,6 +1,6 @@
-module Strand exposing (..)
+module Utils.Strand exposing (..)
 
-import Either exposing (Either(..))
+import Utils.Either as Either exposing (Either(..))
 
 
 type Strand bead

@@ -1,6 +1,5 @@
 module GateSchematic.Render exposing (view)
 
-import Either
 import Element exposing (..)
 import Element.Border
 import Element.Events
@@ -8,8 +7,9 @@ import Element.Font
 import Element.Input
 import GateSchematic.RandomColor
 import GateSchematic.Types exposing (CMOS, Model, Msg(..), Transistor, TransistorKind(..))
-import Strand exposing (Alignment)
-import Strand.Pathed
+import Utils.Either as Either
+import Utils.Strand as Strand exposing (Alignment)
+import Utils.Strand.Pathed as PathedStrand
 
 
 view : Model -> Element Msg
@@ -19,7 +19,7 @@ view ({ gate, label } as model) =
             Either.fold ((<) 0 << String.length) (always False) label
 
         labelText =
-            Either.fold identity (\labelPath -> Strand.Pathed.getAt labelPath gate |> Maybe.map Tuple.first |> Maybe.withDefault "") label
+            Either.fold identity (\labelPath -> PathedStrand.getAt labelPath gate |> Maybe.map Tuple.first |> Maybe.withDefault "") label
     in
     column [ centerX, alignTop ]
         [ Element.row []
@@ -67,7 +67,7 @@ viewGateSide tkind canAdd =
                 ]
                 Element.none
     in
-    Strand.Pathed.fold
+    PathedStrand.fold
         { single =
             \p (( i, _ ) as device) ->
                 column
@@ -84,22 +84,22 @@ viewGateSide tkind canAdd =
                                     [ onRight <|
                                         Element.Input.button [ Element.centerY ]
                                             { label = Element.text "+"
-                                            , onPress = Just (AddParallel (Strand.Pathed.right p))
+                                            , onPress = Just (AddParallel (PathedStrand.right p))
                                             }
                                     , onLeft <|
                                         Element.Input.button [ Element.centerY ]
                                             { label = Element.text "+"
-                                            , onPress = Just (AddParallel (Strand.Pathed.left p))
+                                            , onPress = Just (AddParallel (PathedStrand.left p))
                                             }
                                     , above <|
                                         Element.Input.button [ centerX ]
                                             { label = Element.text "+"
-                                            , onPress = Just (AddSeries (Strand.Pathed.above p))
+                                            , onPress = Just (AddSeries (PathedStrand.above p))
                                             }
                                     , below <|
                                         Element.Input.button [ centerX ]
                                             { label = Element.text "+"
-                                            , onPress = Just (AddSeries (Strand.Pathed.below p))
+                                            , onPress = Just (AddSeries (PathedStrand.below p))
                                             }
                                     ]
 

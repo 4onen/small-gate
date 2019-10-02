@@ -9,7 +9,7 @@ import Layout.Renderers exposing (..)
 import Layout.Types exposing (..)
 import Svg exposing (Svg)
 import Svg.Attributes as SA
-import SvgClick
+import Utils.SvgClick as SvgClick
 
 
 view : List View -> { model | labels : Dict String ( Int, Int ), layers : Layers } -> Element.Element Msg

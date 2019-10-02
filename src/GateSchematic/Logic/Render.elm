@@ -9,7 +9,7 @@ import Element.Input
 import GateSchematic.Logic
 import GateSchematic.Types exposing (Msg(..))
 import Set
-import Strand exposing (Alignment)
+import Utils.Strand as Strand exposing (Alignment)
 
 
 view : Int -> Alignment String -> Element Msg

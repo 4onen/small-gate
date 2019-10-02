@@ -1,4 +1,4 @@
-module Either exposing (Either(..), fold, map, mapLeft, mapRight)
+module Utils.Either exposing (Either(..), fold, map, mapLeft, mapRight)
 
 
 type Either a b

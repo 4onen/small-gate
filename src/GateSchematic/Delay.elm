@@ -5,7 +5,7 @@ import GateSchematic.Logic
 import GateSchematic.Types exposing (Transistor, TransistorKind(..), Width)
 import List.Extra
 import Set exposing (Set)
-import Strand exposing (Alignment(..))
+import Utils.Strand as Strand exposing (Alignment(..))
 
 
 computeRiseFall : Alignment Transistor -> Float -> ( List ( Set String, Float ), List ( Set String, Float ) )

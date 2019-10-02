@@ -1,8 +1,8 @@
-module Strand.Pathed exposing (Path, above, below, delete, empty, fold, getAt, insertParallel, insertSeries, left, map, right, updateAt)
+module Utils.Strand.Pathed exposing (Path, above, below, delete, empty, fold, getAt, insertParallel, insertSeries, left, map, right, updateAt)
 
-import Either exposing (Either(..))
 import List.Extra
-import Strand exposing (Alignment(..), Fray(..), Strand(..))
+import Utils.Either as Either exposing (Either(..))
+import Utils.Strand exposing (Alignment(..), Fray(..), Strand(..))
 
 
 type alias Path =

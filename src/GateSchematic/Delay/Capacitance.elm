@@ -2,7 +2,7 @@ module GateSchematic.Delay.Capacitance exposing (input)
 
 import Dict exposing (Dict)
 import GateSchematic.Types exposing (Transistor, Width)
-import Strand exposing (Alignment(..))
+import Utils.Strand as Strand exposing (Alignment(..))
 
 
 input : Alignment Transistor -> Dict String Width

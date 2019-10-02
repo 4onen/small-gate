@@ -3,7 +3,7 @@ module GateSchematic.Logic exposing (..)
 import Bitwise
 import List.Extra
 import Set exposing (Set)
-import Strand exposing (Alignment(..))
+import Utils.Strand as Strand exposing (Alignment(..))
 
 
 cleanLabel : String -> String
@@ -69,7 +69,8 @@ simulate activeInputs =
                         i |> String.filter ((==) '\'') |> String.length |> Bitwise.and 1 |> (==) 1
 
                     input =
-                        i |> String.filter ((/=) '\'')
+                        i
+                            |> String.filter ((/=) '\'')
                             |> (\s ->
                                     if s /= "" then
                                         s

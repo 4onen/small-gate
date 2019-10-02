@@ -1,7 +1,6 @@
 module GateSchematic exposing (init, update, view)
 
 import Browser
-import Either exposing (Either(..))
 import Element exposing (..)
 import Element.Input
 import GateSchematic.Delay
@@ -13,8 +12,9 @@ import GateSchematic.RandomColor
 import GateSchematic.Render
 import GateSchematic.Types exposing (..)
 import Set exposing (Set)
-import Strand exposing (Alignment(..))
-import Strand.Pathed exposing (Path)
+import Utils.Either as Either exposing (Either(..))
+import Utils.Strand as Strand exposing (Alignment(..))
+import Utils.Strand.Pathed as PathedStrand exposing (Path)
 
 
 main =
@@ -35,7 +35,7 @@ update msg model =
     case msg of
         Select path ->
             if model.clickTrash then
-                Strand.Pathed.delete path model.gate
+                PathedStrand.delete path model.gate
                     |> Maybe.map
                         (\newgate ->
                             { model | gate = newgate }
@@ -54,7 +54,7 @@ update msg model =
                     model
 
                 Left text ->
-                    { model | gate = Strand.Pathed.insertParallel path ( text, ( 2, 1 ) ) model.gate, label = Left "" }
+                    { model | gate = PathedStrand.insertParallel path ( text, ( 2, 1 ) ) model.gate, label = Left "" }
 
         AddSeries path ->
             case model.label of
@@ -65,12 +65,12 @@ update msg model =
                     model
 
                 Left text ->
-                    { model | gate = Strand.Pathed.insertSeries path ( text, ( 2, 1 ) ) model.gate, label = Left "" }
+                    { model | gate = PathedStrand.insertSeries path ( text, ( 2, 1 ) ) model.gate, label = Left "" }
 
         ChangeLabel newLabel ->
             Either.fold
                 (always { model | label = Left <| GateSchematic.Logic.cleanLabel newLabel })
-                (\labelPath -> { model | gate = Strand.Pathed.updateAt labelPath (Tuple.mapFirst <| always <| GateSchematic.Logic.cleanLabel newLabel) model.gate })
+                (\labelPath -> { model | gate = PathedStrand.updateAt labelPath (Tuple.mapFirst <| always <| GateSchematic.Logic.cleanLabel newLabel) model.gate })
                 model.label
 
         ToggleClickTrash ->

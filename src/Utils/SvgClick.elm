@@ -1,4 +1,4 @@
-module SvgClick exposing (onDown, onMove, onUp)
+module Utils.SvgClick exposing (onDown, onMove, onUp)
 
 import Html
 import Html.Events

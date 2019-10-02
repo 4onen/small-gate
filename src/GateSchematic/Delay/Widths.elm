@@ -1,8 +1,8 @@
 module GateSchematic.Delay.Widths exposing (solve)
 
-import Either exposing (Either(..))
 import GateSchematic.Types exposing (Transistor)
-import Strand exposing (Alignment(..), Fray(..), Strand(..))
+import Utils.Either as Either exposing (Either(..))
+import Utils.Strand as Strand exposing (Alignment(..), Fray(..), Strand(..))
 
 
 {-| Will estimate ideal transistor widths for equal rise/fall times in a static CMOS gate.
