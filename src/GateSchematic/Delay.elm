@@ -1,5 +1,6 @@
 module GateSchematic.Delay exposing (..)
 
+import GateSchematic.Delay.CurrentPath exposing (..)
 import GateSchematic.Logic
 import GateSchematic.Types exposing (Transistor, TransistorKind(..), Width)
 import List.Extra
@@ -25,12 +26,6 @@ computeRiseFall gate outputCapacitance =
     ( rise, fall )
 
 
-type alias CurrentPath =
-    { currentCarrying : Maybe Float
-    , delay : Maybe Float -> Maybe Float -> Float
-    }
-
-
 computeRise : Alignment ( String, Float ) -> Alignment ( String, Float ) -> Float -> List ( Set String, Float )
 computeRise pmos nmos outputCapacitance =
     let
@@ -42,19 +37,31 @@ computeRise pmos nmos outputCapacitance =
             let
                 pmosSide : CurrentPath
                 pmosSide =
-                    currentPath PMOS False active pmos
-
-                nmosSide : CurrentPath
-                nmosSide =
-                    currentPath NMOS False active nmos
-
-                parasitic =
-                    pmosSide.delay (Just 0) Nothing
-
-                load =
-                    Maybe.map ((*) outputCapacitance) pmosSide.currentCarrying
+                    risingCurrentPath PMOS active pmos
             in
-            Maybe.map ((+) parasitic >> Tuple.pair active) load
+            case pmosSide.currentCarrying of
+                Nothing ->
+                    Nothing
+
+                Just r ->
+                    let
+                        nmosSide : CurrentPath
+                        nmosSide =
+                            risingCurrentPath NMOS active nmos
+
+                        pmosParasitics =
+                            pmosSide.delay (Just 0) Nothing
+
+                        nmosParasitics =
+                            nmosSide.delay pmosSide.currentCarrying Nothing
+
+                        parasitics =
+                            pmosParasitics + nmosParasitics
+
+                        load =
+                            outputCapacitance * r
+                    in
+                    Just ( active, load + parasitics )
         )
         lactives
 
@@ -69,157 +76,66 @@ computeFall pmos nmos outputCapacitance =
     List.filterMap
         (\active ->
             let
-                pmosSide : CurrentPath
-                pmosSide =
-                    currentPath PMOS True active pmos
-
                 nmosSide : CurrentPath
                 nmosSide =
-                    currentPath NMOS True active nmos
-
-                parasitic =
-                    nmosSide.delay (Just 0) Nothing
-
-                load =
-                    Maybe.map ((*) outputCapacitance) nmosSide.currentCarrying
+                    fallingCurrentPath NMOS active nmos
             in
-            Maybe.map ((+) parasitic >> Tuple.pair active) load
+            case nmosSide.currentCarrying of
+                Nothing ->
+                    Nothing
+
+                Just r ->
+                    let
+                        pmosSide : CurrentPath
+                        pmosSide =
+                            fallingCurrentPath PMOS active pmos
+
+                        parasitic =
+                            (+)
+                                (pmosSide.delay Nothing nmosSide.currentCarrying)
+                                (nmosSide.delay Nothing (Just 0))
+
+                        load =
+                            outputCapacitance * r
+                    in
+                    Just ( active, load + parasitic )
         )
         lactives
 
 
-currentPath : TransistorKind -> Bool -> Set String -> Alignment ( String, Float ) -> CurrentPath
-currentPath tkind reverse active =
+risingCurrentPath : TransistorKind -> Set String -> Alignment ( String, Float ) -> CurrentPath
+risingCurrentPath tkind low =
+    let
+        lowactive =
+            tkind == PMOS
+    in
     Strand.fold
         { single =
             \( name, width ) ->
-                transistor (Set.member name active) tkind width
-        , strand =
-            (if reverse then
-                List.reverse
-
-             else
-                identity
-            )
-                >> List.foldl
-                    (\new total ->
-                        CurrentPath
-                            (Maybe.map2 (+) total.currentCarrying new.currentCarrying)
-                            (\mbefore mafter ->
-                                (+)
-                                    (total.delay mbefore (Maybe.map2 (+) new.currentCarrying mafter))
-                                    (new.delay (Maybe.map2 (+) total.currentCarrying mbefore) mafter)
-                            )
-                    )
-                    wire
-        , fray =
-            \lp ->
-                List.Extra.indexedFoldl
-                    (\i new total ->
-                        CurrentPath
-                            (maybeParallel new.currentCarrying total.currentCarrying)
-                            (let
-                                otherPaths =
-                                    lp
-                                        |> List.Extra.removeAt i
-                                        |> List.foldl (.currentCarrying >> maybeParallel) Nothing
-                             in
-                             \mbefore mafter ->
-                                (+)
-                                    (total.delay mbefore mafter)
-                                    (new.delay mbefore (maybeParallel otherPaths mafter))
-                            )
-                    )
-                    open
-                    lp
+                let
+                    isactive =
+                        lowactive == Set.member name low
+                in
+                transistor isactive tkind width
+        , strand = manySeries Rising
+        , fray = manyParallel Rising
         }
 
 
-wire =
-    CurrentPath (Just 0) (always (always 0))
-
-
-open =
-    CurrentPath Nothing (always (always 0))
-
-
-transistor : Bool -> TransistorKind -> Float -> CurrentPath
-transistor active transistorKind width =
+fallingCurrentPath : TransistorKind -> Set String -> Alignment ( String, Float ) -> CurrentPath
+fallingCurrentPath tkind high =
     let
-        resistanceFactor =
-            case transistorKind of
-                PMOS ->
-                    2.0
-
-                NMOS ->
-                    1.0
-
-        currentCarrying =
-            if active then
-                Just <| resistanceFactor / width
-
-            else
-                Nothing
-
-        delay mbefore mafter =
-            case ( mbefore, mafter ) of
-                ( Nothing, Nothing ) ->
-                    0
-
-                ( Just rbefore, Nothing ) ->
-                    case currentCarrying of
-                        Just r ->
-                            (rbefore * width) + ((rbefore + r) * width)
-
-                        Nothing ->
-                            rbefore * width
-
-                ( Nothing, Just rafter ) ->
-                    case currentCarrying of
-                        Just r ->
-                            ((rafter + r) * width) + (rafter * width)
-
-                        Nothing ->
-                            rafter * width
-
-                ( Just rbefore, Just rafter ) ->
-                    case currentCarrying of
-                        Just r ->
-                            (+)
-                                (width * parallel rbefore (rafter + r))
-                                (width * parallel (rbefore + r) rafter)
-
-                        Nothing ->
-                            (+)
-                                (width * rbefore)
-                                (width * rafter)
+        highactive =
+            tkind == NMOS
     in
-    CurrentPath currentCarrying delay
-
-
-{-| The operation for combining resistors in parallel
-
-Sometimes called the "reciprocal formula"
-
-See: <https://en.wikipedia.org/wiki/Parallel_(operator)>
-
--}
-parallel : Float -> Float -> Float
-parallel a b =
-    a * b / (a + b)
-
-
-maybeParallel : Maybe Float -> Maybe Float -> Maybe Float
-maybeParallel ma mb =
-    case ( ma, mb ) of
-        ( Nothing, Nothing ) ->
-            Nothing
-
-        ( Just a, Nothing ) ->
-            Just a
-
-        ( Nothing, Just b ) ->
-            Just b
-
-        ( Just a, Just b ) ->
-            Just <| parallel a b
+    Strand.fold
+        { single =
+            \( name, width ) ->
+                let
+                    isactive =
+                        highactive == Set.member name high
+                in
+                transistor isactive tkind width
+        , strand = manySeries Falling
+        , fray = manyParallel Falling
+        }
